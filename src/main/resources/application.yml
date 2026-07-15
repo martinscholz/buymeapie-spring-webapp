@@ -1,0 +1,19 @@
+spring:
+  application:
+    name: buymeapie-webapp
+
+buymeapie:
+  base-url: ${BUYMEAPIE_BASE_URL:https://api.buymeapie.com}
+  username: ${BUYMEAPIE_USERNAME:}
+  pin: ${BUYMEAPIE_PIN:}
+  timeout: ${BUYMEAPIE_TIMEOUT:20s}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true

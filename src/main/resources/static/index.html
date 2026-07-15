@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Buy Me a Pie</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <main class="app-shell">
+    <aside class="sidebar">
+      <section class="brand">
+        <div class="logo">Pie</div>
+        <div>
+          <p class="eyebrow">Spring Boot Webapp</p>
+          <h1>Buy Me a Pie</h1>
+        </div>
+      </section>
+
+      <form id="create-list-form" class="create-list">
+        <input id="new-list-name" type="text" autocomplete="off" placeholder="New list name" required>
+        <button type="submit" title="Create list">+</button>
+      </form>
+
+      <nav id="list-nav" class="list-nav" aria-label="Shopping lists"></nav>
+    </aside>
+
+    <section class="workspace">
+      <header class="topbar">
+        <div>
+          <p id="account-label" class="eyebrow">Connecting...</p>
+          <h2 id="current-list-title">Shopping lists</h2>
+        </div>
+        <div class="top-actions">
+          <button id="refresh-button" class="ghost-button" type="button">Refresh</button>
+          <button id="details-button" class="ghost-button" type="button">Account</button>
+        </div>
+      </header>
+
+      <section class="summary-strip" aria-label="List summary">
+        <article>
+          <span id="summary-open">0</span>
+          <p>Open</p>
+        </article>
+        <article>
+          <span id="summary-done">0</span>
+          <p>Purchased</p>
+        </article>
+        <article>
+          <span id="summary-total">0</span>
+          <p>Total</p>
+        </article>
+      </section>
+
+      <section class="tool-row">
+        <form id="add-item-form" class="add-item">
+          <input id="item-title" list="unique-items" type="text" autocomplete="off" placeholder="Add milk, tomatoes, pasta..." required>
+          <input id="item-amount" type="text" autocomplete="off" placeholder="Amount">
+          <button type="submit">Add</button>
+        </form>
+        <datalist id="unique-items"></datalist>
+      </section>
+
+      <section id="empty-state" class="empty-state">
+        <h3>Select or create a list</h3>
+        <p>Your lists, items, autocomplete dictionary, account status, and plan limits all live here.</p>
+      </section>
+
+      <section id="items-panel" class="items-panel" hidden>
+        <div class="panel-toolbar">
+          <div class="segmented-control" role="tablist" aria-label="Item filter">
+            <button class="active" type="button" data-filter="all">All</button>
+            <button type="button" data-filter="open">Open</button>
+            <button type="button" data-filter="purchased">Purchased</button>
+          </div>
+          <input id="search-items" type="search" placeholder="Search items">
+        </div>
+        <ul id="item-list" class="item-list"></ul>
+      </section>
+    </section>
+
+    <aside id="details-drawer" class="details-drawer" aria-label="Account details">
+      <div class="drawer-header">
+        <h2>Details</h2>
+        <button id="close-details" type="button" title="Close">x</button>
+      </div>
+
+      <section class="drawer-section">
+        <h3>Current List</h3>
+        <form id="rename-list-form">
+          <input id="rename-list-name" type="text" placeholder="List name">
+          <button type="submit">Rename</button>
+        </form>
+        <label class="field-label" for="share-emails">Shared emails</label>
+        <textarea id="share-emails" rows="4" placeholder="one@example.com, two@example.com"></textarea>
+        <button id="save-share-button" type="button">Save sharing</button>
+        <button id="delete-list-button" class="danger-button" type="button">Delete list</button>
+      </section>
+
+      <section class="drawer-section">
+        <h3>Account</h3>
+        <pre id="account-json">Loading...</pre>
+      </section>
+
+      <section class="drawer-section">
+        <h3>Restrictions</h3>
+        <pre id="restrictions-json">Loading...</pre>
+      </section>
+    </aside>
+  </main>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <script src="/app.js" defer></script>
+</body>
+</html>
