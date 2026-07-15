@@ -16,6 +16,10 @@
   box-sizing: border-box;
 }
 
+[hidden] {
+  display: none !important;
+}
+
 body {
   margin: 0;
   min-height: 100vh;
@@ -246,7 +250,7 @@ textarea:focus {
 }
 
 .add-item {
-  grid-template-columns: minmax(0, 2fr) minmax(120px, .7fr) 92px;
+  grid-template-columns: minmax(0, 2fr) minmax(120px, .6fr) minmax(120px, .7fr) 92px;
 }
 
 .empty-state {
@@ -307,6 +311,28 @@ textarea:focus {
   list-style: none;
 }
 
+.group-section {
+  display: grid;
+  gap: 8px;
+}
+
+.group-heading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: .82rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.group-heading::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--line);
+}
+
 .item-row {
   display: grid;
   grid-template-columns: 36px minmax(0, 1fr) auto;
@@ -326,6 +352,11 @@ textarea:focus {
 .item-row.purchased .item-title {
   color: var(--muted);
   text-decoration: line-through;
+}
+
+.item-row.selected {
+  border-color: var(--leaf);
+  box-shadow: 0 0 0 3px rgba(46, 125, 98, .12);
 }
 
 .check-button {
@@ -355,6 +386,22 @@ textarea:focus {
   border-radius: 999px;
   background: #fff3c9;
   color: #655014;
+  padding: 4px 9px;
+  font-size: .82rem;
+  font-weight: 800;
+}
+
+.item-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.group-pill {
+  flex: 0 0 auto;
+  border-radius: 999px;
+  background: #e8f4ef;
+  color: var(--leaf);
   padding: 4px 9px;
   font-size: .82rem;
   font-weight: 800;
@@ -427,6 +474,41 @@ pre {
   color: #edf7f3;
   padding: 12px;
   font-size: .78rem;
+}
+
+.muted-box {
+  border: 1px dashed var(--line);
+  border-radius: 8px;
+  color: var(--muted);
+  padding: 12px;
+}
+
+.detail-summary {
+  display: grid;
+  gap: 4px;
+}
+
+.detail-summary strong {
+  color: var(--ink);
+}
+
+.attribute-list {
+  display: grid;
+  grid-template-columns: minmax(92px, .45fr) minmax(0, 1fr);
+  gap: 8px 10px;
+  margin: 0;
+}
+
+.attribute-list dt {
+  color: var(--muted);
+  font-size: .82rem;
+  font-weight: 900;
+}
+
+.attribute-list dd {
+  min-width: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
 }
 
 .toast {

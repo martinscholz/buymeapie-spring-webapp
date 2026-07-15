@@ -69,19 +69,19 @@ public class BuyMeAPieController {
     @PostMapping("/lists/{listId}/items")
     @ResponseStatus(HttpStatus.CREATED)
     JsonNode addItem(@PathVariable String listId, @Valid @RequestBody CreateItemRequest request) throws Exception {
-        return client.addShoppingItem(listId, request.title(), request.amount(), Boolean.TRUE.equals(request.purchased()));
+        return client.addShoppingItem(listId, request.title(), request.amount(), Boolean.TRUE.equals(request.purchased()), request.group());
     }
 
     @PatchMapping("/lists/{listId}/items/{itemId}")
     JsonNode updateItem(@PathVariable String listId, @PathVariable String itemId, @RequestBody ItemRequest request)
             throws Exception {
-        return client.updateItem(listId, itemId, request.title(), request.amount(), request.purchased());
+        return client.updateItem(listId, itemId, request.title(), request.amount(), request.purchased(), request.group());
     }
 
     @PutMapping("/lists/{listId}/items/{itemId}/purchased")
     JsonNode setPurchased(@PathVariable String listId, @PathVariable String itemId, @RequestBody PurchasedRequest request)
             throws Exception {
-        return client.updateItem(listId, itemId, null, null, request.purchased());
+        return client.updateItem(listId, itemId, null, null, request.purchased(), null);
     }
 
     @DeleteMapping("/lists/{listId}/items/{itemId}")
@@ -95,7 +95,7 @@ public class BuyMeAPieController {
     }
 
     public record ListRequest(@NotBlank String name, JsonNode emails) {}
-    public record CreateItemRequest(@NotBlank String title, String amount, Boolean purchased) {}
-    public record ItemRequest(String title, String amount, Boolean purchased) {}
+    public record CreateItemRequest(@NotBlank String title, String amount, Boolean purchased, String group) {}
+    public record ItemRequest(String title, String amount, Boolean purchased, String group) {}
     public record PurchasedRequest(Boolean purchased) {}
 }

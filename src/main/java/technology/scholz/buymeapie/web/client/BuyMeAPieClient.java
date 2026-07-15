@@ -3,6 +3,9 @@ package technology.scholz.buymeapie.web.client;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Component;
 import technology.scholz.buymeapie.web.config.BuyMeAPieProperties;
@@ -34,18 +37,22 @@ public class BuyMeAPieClient {
                 .encodeToString(credentials.getBytes(StandardCharsets.UTF_8));
     }
 
+    @Cacheable("account")
     public JsonNode whoAmI() throws IOException, InterruptedException {
         return request("GET", "/bauth", null);
     }
 
+    @Cacheable("restrictions")
     public JsonNode restrictions() throws IOException, InterruptedException {
         return request("GET", "/restrictions", null);
     }
 
+    @Cacheable("lists")
     public JsonNode listShoppingLists() throws IOException, InterruptedException {
         return request("GET", "/lists", null);
     }
 
+    @Cacheable(cacheNames = "listDetails", key = "#listId")
     public JsonNode getShoppingList(String listId) throws IOException, InterruptedException {
         ObjectNode result = mapper.createObjectNode();
         JsonNode lists = listShoppingLists();
@@ -61,14 +68,21 @@ public class BuyMeAPieClient {
         throw new BuyMeAPieException(404, "List not found");
     }
 
+    @Cacheable(cacheNames = "listItems", key = "#listId")
     public JsonNode listItems(String listId) throws IOException, InterruptedException {
         return request("GET", "/lists/" + encodePath(listId) + "/items", null);
     }
 
+    @Cacheable("uniqueItems")
     public JsonNode uniqueItems() throws IOException, InterruptedException {
         return request("GET", "/unique_items", null);
     }
 
+    @Caching(evict = {
+            @CacheEvict(cacheNames = "lists", allEntries = true),
+            @CacheEvict(cacheNames = "listDetails", allEntries = true),
+            @CacheEvict(cacheNames = "listItems", allEntries = true)
+    })
     public JsonNode createList(String name) throws IOException, InterruptedException {
         ObjectNode payload = mapper.createObjectNode()
                 .put("name", name)
@@ -77,6 +91,11 @@ public class BuyMeAPieClient {
         return request("POST", "/lists", payload);
     }
 
+    @Caching(evict = {
+            @CacheEvict(cacheNames = "lists", allEntries = true),
+            @CacheEvict(cacheNames = "listDetails", allEntries = true),
+            @CacheEvict(cacheNames = "listItems", allEntries = true)
+    })
     public JsonNode updateList(String listId, String name, JsonNode emails) throws IOException, InterruptedException {
         ObjectNode current = findList(listId);
         ObjectNode payload = mapper.createObjectNode();
@@ -85,31 +104,61 @@ public class BuyMeAPieClient {
         return request("PUT", "/lists/" + encodePath(listId), payload);
     }
 
+    @Caching(evict = {
+            @CacheEvict(cacheNames = "lists", allEntries = true),
+            @CacheEvict(cacheNames = "listDetails", allEntries = true),
+            @CacheEvict(cacheNames = "listItems", allEntries = true)
+    })
     public JsonNode deleteList(String listId) throws IOException, InterruptedException {
         return request("DELETE", "/lists/" + encodePath(listId), null);
     }
 
-    public JsonNode addShoppingItem(String listId, String title, String amount, boolean purchased)
+    @Caching(evict = {
+            @CacheEvict(cacheNames = "lists", allEntries = true),
+            @CacheEvict(cacheNames = "listDetails", allEntries = true),
+            @CacheEvict(cacheNames = "listItems", allEntries = true),
+            @CacheEvict(cacheNames = "uniqueItems", allEntries = true)
+    })
+    public JsonNode addShoppingItem(String listId, String title, String amount, boolean purchased, String group)
             throws IOException, InterruptedException {
         ObjectNode payload = mapper.createObjectNode()
                 .put("title", title)
                 .put("amount", amount == null ? "" : amount)
                 .put("is_purchased", purchased);
+        putGroup(payload, group);
         return request("POST", "/lists/" + encodePath(listId) + "/items", payload);
     }
 
-    public JsonNode updateItem(String listId, String itemId, String title, String amount, Boolean purchased)
+    @Caching(evict = {
+            @CacheEvict(cacheNames = "lists", allEntries = true),
+            @CacheEvict(cacheNames = "listDetails", allEntries = true),
+            @CacheEvict(cacheNames = "listItems", allEntries = true),
+            @CacheEvict(cacheNames = "uniqueItems", allEntries = true)
+    })
+    public JsonNode updateItem(String listId, String itemId, String title, String amount, Boolean purchased, String group)
             throws IOException, InterruptedException {
         ObjectNode payload = mapper.createObjectNode();
         if (title != null) payload.put("title", title);
         if (amount != null) payload.put("amount", amount);
         if (purchased != null) payload.put("is_purchased", purchased);
+        putGroup(payload, group);
         if (payload.isEmpty()) throw new IllegalArgumentException("At least one item field must be supplied");
         return request("PUT", "/lists/" + encodePath(listId) + "/items/" + encodePath(itemId), payload);
     }
 
+    @Caching(evict = {
+            @CacheEvict(cacheNames = "lists", allEntries = true),
+            @CacheEvict(cacheNames = "listDetails", allEntries = true),
+            @CacheEvict(cacheNames = "listItems", allEntries = true)
+    })
     public JsonNode deleteItem(String listId, String itemId) throws IOException, InterruptedException {
         return request("DELETE", "/lists/" + encodePath(listId) + "/items/" + encodePath(itemId), null);
+    }
+
+    private static void putGroup(ObjectNode payload, String group) {
+        if (group != null && !group.isBlank()) {
+            payload.put("group", group.trim());
+        }
     }
 
     private ObjectNode findList(String listId) throws IOException, InterruptedException {

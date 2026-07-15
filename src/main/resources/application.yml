@@ -1,6 +1,9 @@
 spring:
   application:
     name: buymeapie-webapp
+  cache:
+    type: simple
+    cache-names: account,restrictions,lists,listDetails,listItems,uniqueItems
 
 buymeapie:
   base-url: ${BUYMEAPIE_BASE_URL:https://api.buymeapie.com}
