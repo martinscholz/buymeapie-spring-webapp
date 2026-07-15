@@ -7,10 +7,6 @@ const state = {
   filter: "all",
   query: "",
   groupFilter: "",
-  createdFrom: "",
-  createdTo: "",
-  updatedFrom: "",
-  updatedTo: "",
   account: null,
   restrictions: null,
   cache: new Map()
@@ -166,16 +162,6 @@ function formatDateTime(value) {
   }).format(date);
 }
 
-function filterBoundary(value, endOfDay = false) {
-  if (!value) return null;
-  const date = new Date(`${value}T00:00:00`);
-  if (Number.isNaN(date.getTime())) return null;
-  if (endOfDay) {
-    date.setHours(23, 59, 59, 999);
-  }
-  return date;
-}
-
 function listName(list) {
   return list.name || "Untitled list";
 }
@@ -233,8 +219,7 @@ function renderItems() {
     const haystack = `${itemTitle(item)} ${itemAmount(item)} ${itemGroup(item)} ${JSON.stringify(item)}`.toLowerCase();
     const matchesFilter = state.filter === "all" || (state.filter === "open" && !purchased) || (state.filter === "purchased" && purchased);
     const matchesQuery = !normalizedQuery || haystack.includes(normalizedQuery);
-    return matchesFilter && matchesQuery && matchesGroup(item) && matchesDateRange(itemCreatedAt(item), state.createdFrom, state.createdTo) &&
-      matchesDateRange(itemUpdatedAt(item), state.updatedFrom, state.updatedTo);
+    return matchesFilter && matchesQuery && matchesGroup(item);
   });
 
   if (!filtered.length) {
@@ -304,15 +289,6 @@ function groupedItems(items) {
 
 function matchesGroup(item) {
   return !state.groupFilter || itemGroup(item) === state.groupFilter;
-}
-
-function matchesDateRange(rawValue, from, to) {
-  const date = parseTimestamp(rawValue);
-  if (!from && !to) return true;
-  if (!date) return false;
-  const start = filterBoundary(from);
-  const end = filterBoundary(to, true);
-  return (!start || date >= start) && (!end || date <= end);
 }
 
 function selectItem(item) {
@@ -661,29 +637,9 @@ $("#filter-group").addEventListener("change", (event) => {
   renderItems();
 });
 
-[
-  ["#filter-created-from", "createdFrom"],
-  ["#filter-created-to", "createdTo"],
-  ["#filter-updated-from", "updatedFrom"],
-  ["#filter-updated-to", "updatedTo"]
-].forEach(([selector, key]) => {
-  $(selector).addEventListener("change", (event) => {
-    state[key] = event.target.value;
-    renderItems();
-  });
-});
-
 $("#clear-filters").addEventListener("click", () => {
   state.groupFilter = "";
-  state.createdFrom = "";
-  state.createdTo = "";
-  state.updatedFrom = "";
-  state.updatedTo = "";
   $("#filter-group").value = "";
-  $("#filter-created-from").value = "";
-  $("#filter-created-to").value = "";
-  $("#filter-updated-from").value = "";
-  $("#filter-updated-to").value = "";
   renderItems();
 });
 
