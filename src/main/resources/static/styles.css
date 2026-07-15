@@ -385,11 +385,6 @@ select:focus {
   text-decoration: line-through;
 }
 
-.item-row.selected {
-  border-color: var(--leaf);
-  box-shadow: 0 0 0 3px rgba(46, 125, 98, .12);
-}
-
 .check-button {
   display: grid;
   place-items: center;
@@ -512,34 +507,6 @@ pre {
   border-radius: 8px;
   color: var(--muted);
   padding: 12px;
-}
-
-.detail-summary {
-  display: grid;
-  gap: 4px;
-}
-
-.detail-summary strong {
-  color: var(--ink);
-}
-
-.attribute-list {
-  display: grid;
-  grid-template-columns: minmax(92px, .45fr) minmax(0, 1fr);
-  gap: 8px 10px;
-  margin: 0;
-}
-
-.attribute-list dt {
-  color: var(--muted);
-  font-size: .82rem;
-  font-weight: 900;
-}
-
-.attribute-list dd {
-  min-width: 0;
-  margin: 0;
-  overflow-wrap: anywhere;
 }
 
 .toast {

@@ -2,7 +2,6 @@ const state = {
   lists: [],
   currentListId: null,
   currentList: null,
-  selectedItemId: null,
   items: [],
   filter: "all",
   query: "",
@@ -131,37 +130,6 @@ function itemId(item) {
   return item.id || item.uuid || item.item_id || itemTitle(item);
 }
 
-function itemCreatedAt(item) {
-  return item.created_at ?? item.createdAt ?? item.created ?? item.created_on ?? item.createdOn;
-}
-
-function itemUpdatedAt(item) {
-  return item.updated_at ?? item.updatedAt ?? item.modified_at ?? item.modifiedAt ?? item.updated_on ?? item.updatedOn;
-}
-
-function parseTimestamp(value) {
-  if (value === null || value === undefined || value === "") return null;
-  if (typeof value === "number") {
-    const millis = value < 10_000_000_000 ? value * 1000 : value;
-    const date = new Date(millis);
-    return Number.isNaN(date.getTime()) ? null : date;
-  }
-  if (typeof value === "string" && /^\d+$/.test(value.trim())) {
-    return parseTimestamp(Number(value));
-  }
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? null : date;
-}
-
-function formatDateTime(value) {
-  const date = parseTimestamp(value);
-  if (!date) return "";
-  return new Intl.DateTimeFormat(undefined, {
-    dateStyle: "medium",
-    timeStyle: "short"
-  }).format(date);
-}
-
 function listName(list) {
   return list.name || "Untitled list";
 }
@@ -208,7 +176,6 @@ function renderCurrentList() {
   renderGroupSuggestions();
   renderFilterGroups();
   renderItems();
-  renderSelectedItem();
 }
 
 function renderItems() {
@@ -243,8 +210,7 @@ function renderItems() {
 function renderItemRow(item) {
   const row = document.createElement("li");
   const purchased = itemPurchased(item);
-  const id = itemId(item);
-  row.className = `item-row ${purchased ? "purchased" : ""} ${id === state.selectedItemId ? "selected" : ""}`;
+  row.className = `item-row ${purchased ? "purchased" : ""}`;
   row.innerHTML = `
     <button class="check-button" type="button" title="Toggle purchased">✓</button>
     <div class="item-main">
@@ -255,7 +221,6 @@ function renderItemRow(item) {
       </span>
     </div>
     <div class="item-actions">
-      <button class="small-button inspect" type="button">Details</button>
       <button class="small-button edit" type="button">Edit</button>
       <button class="small-button danger remove" type="button">Delete</button>
     </div>
@@ -266,10 +231,8 @@ function renderItemRow(item) {
   amount.hidden = !itemAmount(item);
   row.querySelector(".group-pill").textContent = itemGroup(item);
   row.querySelector(".check-button").addEventListener("click", () => setPurchased(item, !purchased));
-  row.querySelector(".inspect").addEventListener("click", () => selectItem(item));
   row.querySelector(".edit").addEventListener("click", () => editItem(item));
   row.querySelector(".remove").addEventListener("click", () => deleteItem(item));
-  row.addEventListener("dblclick", () => selectItem(item));
   return row;
 }
 
@@ -291,76 +254,6 @@ function matchesGroup(item) {
   return !state.groupFilter || itemGroup(item) === state.groupFilter;
 }
 
-function selectItem(item) {
-  state.selectedItemId = itemId(item);
-  renderItems();
-  renderSelectedItem();
-  if (window.innerWidth <= 1100) {
-    $("#details-drawer").classList.add("open");
-  }
-}
-
-function renderSelectedItem() {
-  const item = state.items.find((candidate) => itemId(candidate) === state.selectedItemId);
-  const summary = $("#selected-item-summary");
-  const fields = $("#selected-item-fields");
-  const json = $("#selected-item-json");
-  if (!item) {
-    summary.className = "detail-summary muted-box";
-    summary.textContent = "Select an item to inspect its attributes.";
-    fields.innerHTML = "";
-    json.textContent = "{}";
-    return;
-  }
-  summary.className = "detail-summary";
-  summary.innerHTML = `<strong></strong><span></span><span></span><span></span><span></span>`;
-  summary.querySelector("strong").textContent = itemTitle(item);
-  const spans = summary.querySelectorAll("span");
-  spans[0].textContent = `Group: ${itemGroup(item)}`;
-  spans[1].textContent = itemPurchased(item) ? "Purchased" : "Open";
-  spans[2].textContent = formatDateTime(itemCreatedAt(item)) ? `Created: ${formatDateTime(itemCreatedAt(item))}` : "Created: n/a";
-  spans[3].textContent = formatDateTime(itemUpdatedAt(item)) ? `Updated: ${formatDateTime(itemUpdatedAt(item))}` : "Updated: n/a";
-  fields.innerHTML = "";
-  Object.entries(flattenObject(item)).forEach(([key, value]) => {
-    const dt = document.createElement("dt");
-    const dd = document.createElement("dd");
-    dt.textContent = key;
-    dd.textContent = formatAttributeValue(key, value);
-    fields.append(dt, dd);
-  });
-  json.textContent = JSON.stringify(item, null, 2);
-}
-
-function flattenObject(value, prefix = "", result = {}) {
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
-    result[prefix || "value"] = value;
-    return result;
-  }
-  for (const [key, nested] of Object.entries(value)) {
-    const nextKey = prefix ? `${prefix}.${key}` : key;
-    if (nested && typeof nested === "object" && !Array.isArray(nested)) {
-      flattenObject(nested, nextKey, result);
-    } else {
-      result[nextKey] = nested;
-    }
-  }
-  return result;
-}
-
-function formatAttributeValue(key, value) {
-  if (looksLikeTimestampKey(key)) {
-    return formatDateTime(value) || String(value ?? "");
-  }
-  if (value === null) return "null";
-  if (value === undefined) return "";
-  if (typeof value === "object") return JSON.stringify(value);
-  return String(value);
-}
-
-function looksLikeTimestampKey(key) {
-  return /(^|[._-])(created|updated|modified)(_|-|$|at|on)/i.test(key || "");
-}
-
 async function loadLists(selectFirst = false, force = false) {
   state.lists = await api("/api/lists", { force });
   if (selectFirst && !state.currentListId && state.lists[0]) {
@@ -369,13 +262,10 @@ async function loadLists(selectFirst = false, force = false) {
   renderLists();
 }
 
-async function selectList(listId, force = false, preserveSelectedItem = false) {
+async function selectList(listId, force = false) {
   state.currentListId = listId;
   state.currentList = null;
   state.items = [];
-  if (!preserveSelectedItem) {
-    state.selectedItemId = null;
-  }
   renderLists();
   renderCurrentList();
   const data = await api(`/api/lists/${encodeURIComponent(listId)}`, { force });
@@ -512,7 +402,7 @@ async function editItem(item) {
       method: "PATCH",
       body: JSON.stringify({ title: title.trim(), amount, ...groupInputPayload(group) })
     });
-    await afterMutation(itemId(item));
+    await afterMutation();
   } catch (error) {
     showToast(error.message);
   }
@@ -522,18 +412,16 @@ async function deleteItem(item) {
   if (!confirm(`Delete "${itemTitle(item)}"?`)) return;
   try {
     await api(`/api/lists/${state.currentListId}/items/${itemId(item)}`, { method: "DELETE" });
-    state.selectedItemId = null;
     await afterMutation();
   } catch (error) {
     showToast(error.message);
   }
 }
 
-async function afterMutation(selectedItemId = state.selectedItemId) {
+async function afterMutation() {
   state.cache.clear();
   await loadLists(false, true);
-  state.selectedItemId = selectedItemId;
-  await selectList(state.currentListId, true, true);
+  await selectList(state.currentListId, true);
 }
 
 $("#create-list-form").addEventListener("submit", async (event) => {
@@ -563,7 +451,7 @@ $("#add-item-form").addEventListener("submit", async (event) => {
     title.value = "";
     amount.value = "";
     group.value = "";
-    await afterMutation(created.id);
+    await afterMutation();
   } catch (error) {
     showToast(error.message);
   }
@@ -604,7 +492,6 @@ $("#delete-list-button").addEventListener("click", async () => {
     await api(`/api/lists/${state.currentListId}`, { method: "DELETE" });
     state.currentListId = null;
     state.currentList = null;
-    state.selectedItemId = null;
     state.items = [];
     state.cache.clear();
     await loadLists(true, true);
