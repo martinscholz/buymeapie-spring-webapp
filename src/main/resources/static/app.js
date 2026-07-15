@@ -6,6 +6,8 @@ const state = {
   filter: "all",
   query: "",
   groupFilter: "",
+  assignMode: false,
+  assignmentGroup: "",
   account: null,
   restrictions: null,
   cache: new Map()
@@ -86,6 +88,27 @@ function groupLabelForId(groupId) {
   const definitions = groupDefinitionMap();
   if (definitions.has(groupId)) return definitions.get(groupId);
   return groupId === "0" ? "Ungrouped" : `Group ${groupId}`;
+}
+
+function groupStyle(value) {
+  const key = String(value || "Ungrouped");
+  let hash = 0;
+  for (let index = 0; index < key.length; index += 1) {
+    hash = (hash * 31 + key.charCodeAt(index)) >>> 0;
+  }
+  const hue = hash % 360;
+  return {
+    background: `hsl(${hue} 68% 92%)`,
+    border: `hsl(${hue} 52% 72%)`,
+    color: `hsl(${hue} 42% 28%)`
+  };
+}
+
+function applyGroupStyle(element, value) {
+  const colors = groupStyle(value);
+  element.style.setProperty("--group-bg", colors.background);
+  element.style.setProperty("--group-border", colors.border);
+  element.style.setProperty("--group-fg", colors.color);
 }
 
 function groupDefinitionMap() {
@@ -173,6 +196,8 @@ function renderCurrentList() {
   renderSummary();
   renderGroupSuggestions();
   renderFilterGroups();
+  renderAssignmentGroups();
+  renderAssignmentPanel();
   renderItems();
 }
 
@@ -196,7 +221,9 @@ function renderItems() {
     const section = document.createElement("li");
     section.className = "group-section";
     section.innerHTML = `<div class="group-heading"></div><ul class="item-list"></ul>`;
-    section.querySelector(".group-heading").textContent = group;
+    const heading = section.querySelector(".group-heading");
+    heading.textContent = group;
+    applyGroupStyle(heading, group);
     const nested = section.querySelector("ul");
     for (const item of items) {
       nested.append(renderItemRow(item));
@@ -219,6 +246,7 @@ function renderItemRow(item) {
       </span>
     </div>
     <div class="item-actions">
+      <button class="small-button assign" type="button">Assign</button>
       <button class="small-button edit" type="button">Edit</button>
       <button class="small-button danger remove" type="button">Delete</button>
     </div>
@@ -227,8 +255,12 @@ function renderItemRow(item) {
   const amount = row.querySelector(".amount");
   amount.textContent = itemAmount(item);
   amount.hidden = !itemAmount(item);
-  row.querySelector(".group-pill").textContent = itemGroup(item);
+  const groupPill = row.querySelector(".group-pill");
+  groupPill.textContent = itemGroup(item);
+  applyGroupStyle(groupPill, itemGroup(item));
   row.querySelector(".check-button").addEventListener("click", () => setPurchased(item, !purchased));
+  row.querySelector(".assign").hidden = !state.assignMode;
+  row.querySelector(".assign").addEventListener("click", () => assignItemGroup(item));
   row.querySelector(".edit").addEventListener("click", () => editItem(item));
   row.querySelector(".remove").addEventListener("click", () => deleteItem(item));
   return row;
@@ -250,6 +282,11 @@ function groupedItems(items) {
 
 function matchesGroup(item) {
   return !state.groupFilter || itemGroup(item) === state.groupFilter;
+}
+
+function renderAssignmentPanel() {
+  $("#assignment-panel").hidden = !state.assignMode;
+  $("#assign-mode-button").classList.toggle("active", state.assignMode);
 }
 
 async function loadLists(selectFirst = false, force = false) {
@@ -330,6 +367,23 @@ function renderFilterGroups() {
   state.groupFilter = select.value;
 }
 
+function renderAssignmentGroups() {
+  const select = $("#assignment-group");
+  const groups = availableGroupLabels()
+    .sort((a, b) => {
+      if (a === "Ungrouped") return 1;
+      if (b === "Ungrouped") return -1;
+      return a.localeCompare(b);
+    });
+  if (!groups.includes("Ungrouped")) groups.push("Ungrouped");
+  const current = state.assignmentGroup || groups[0] || "Ungrouped";
+  select.innerHTML = groups
+    .map((value) => `<option value="${escapeHtml(value)}">${escapeHtml(value)}</option>`)
+    .join("");
+  select.value = groups.includes(current) ? current : groups[0];
+  state.assignmentGroup = select.value;
+}
+
 function availableGroupLabels() {
   const labels = new Set(state.items.map(itemGroup).filter(Boolean));
   groupDefinitionMap().forEach((name) => labels.add(name));
@@ -339,6 +393,7 @@ function availableGroupLabels() {
 function groupInputPayload(value) {
   const trimmed = value.trim();
   if (!trimmed) return {};
+  if (trimmed.toLowerCase() === "ungrouped") return { groupId: 0 };
   const match = [...groupDefinitionMap().entries()]
     .find(([, name]) => name.toLowerCase() === trimmed.toLowerCase());
   if (match && /^-?\d+$/.test(match[0])) return { groupId: Number(match[0]) };
@@ -347,6 +402,21 @@ function groupInputPayload(value) {
   if (fallbackMatch) return { groupId: Number(fallbackMatch[1]) };
   if (/^\d+$/.test(trimmed)) return { groupId: Number(trimmed) };
   return { group: trimmed };
+}
+
+async function assignItemGroup(item) {
+  const targetGroup = state.assignmentGroup || "Ungrouped";
+  if (itemGroup(item) === targetGroup) return;
+  try {
+    await api(`/api/lists/${state.currentListId}/items/${itemId(item)}`, {
+      method: "PATCH",
+      body: JSON.stringify(groupInputPayload(targetGroup))
+    });
+    await afterMutation();
+    showToast(`Assigned "${itemTitle(item)}" to ${targetGroup}`);
+  } catch (error) {
+    showToast(error.message);
+  }
 }
 
 function extractStrings(value, result = new Set()) {
@@ -454,6 +524,16 @@ $("#add-item-form").addEventListener("submit", async (event) => {
 });
 
 $("#refresh-button").addEventListener("click", refresh);
+
+$("#assign-mode-button").addEventListener("click", () => {
+  state.assignMode = !state.assignMode;
+  renderAssignmentPanel();
+  renderItems();
+});
+
+$("#assignment-group").addEventListener("change", (event) => {
+  state.assignmentGroup = event.target.value;
+});
 
 document.querySelectorAll("[data-filter]").forEach((button) => {
   button.addEventListener("click", () => {

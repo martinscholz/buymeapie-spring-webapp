@@ -75,6 +75,14 @@
             <button type="button" data-filter="purchased">Purchased</button>
           </div>
           <input id="search-items" type="search" placeholder="Search items">
+          <button id="assign-mode-button" class="ghost-button" type="button">Assign groups</button>
+        </div>
+        <div id="assignment-panel" class="assignment-panel" hidden>
+          <label>
+            <span>Target group</span>
+            <select id="assignment-group"></select>
+          </label>
+          <p>Choose a group, then click Assign on any item.</p>
         </div>
         <div class="filter-grid" aria-label="Advanced item filters">
           <label>

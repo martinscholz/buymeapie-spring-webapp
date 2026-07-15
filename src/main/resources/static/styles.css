@@ -217,6 +217,12 @@ select:focus {
   padding: 10px 14px;
 }
 
+.ghost-button.active {
+  border-color: var(--leaf);
+  background: #e8f4ef;
+  color: var(--leaf);
+}
+
 .summary-strip {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -315,11 +321,33 @@ select:focus {
   min-width: 0;
 }
 
+.assignment-panel {
+  display: grid;
+  grid-template-columns: minmax(180px, 280px) minmax(0, 1fr);
+  gap: 12px;
+  align-items: end;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #f7faf7;
+  padding: 12px;
+}
+
+.assignment-panel label {
+  display: grid;
+  gap: 5px;
+}
+
+.assignment-panel span,
 .filter-grid span {
   color: var(--muted);
   font-size: .76rem;
   font-weight: 900;
   text-transform: uppercase;
+}
+
+.assignment-panel p {
+  margin-bottom: 11px;
+  color: var(--muted);
 }
 
 .filter-grid input,
@@ -345,10 +373,19 @@ select:focus {
   display: flex;
   align-items: center;
   gap: 8px;
-  color: var(--muted);
+  color: var(--group-fg, var(--muted));
   font-size: .82rem;
   font-weight: 900;
   text-transform: uppercase;
+}
+
+.group-heading::before {
+  content: "";
+  width: 10px;
+  height: 10px;
+  border: 1px solid var(--group-border, var(--line));
+  border-radius: 50%;
+  background: var(--group-bg, #e8f4ef);
 }
 
 .group-heading::after {
@@ -419,9 +456,10 @@ select:focus {
 
 .group-pill {
   flex: 0 0 auto;
+  border: 1px solid var(--group-border, transparent);
   border-radius: 999px;
-  background: #e8f4ef;
-  color: var(--leaf);
+  background: var(--group-bg, #e8f4ef);
+  color: var(--group-fg, var(--leaf));
   padding: 4px 9px;
   font-size: .82rem;
   font-weight: 800;
@@ -437,6 +475,11 @@ select:focus {
   color: var(--ink);
   padding: 8px 10px;
   font-weight: 800;
+}
+
+.small-button.assign {
+  background: #e8f4ef;
+  color: var(--leaf);
 }
 
 .danger-button,
@@ -513,6 +556,10 @@ pre {
   }
 
   .filter-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .assignment-panel {
     grid-template-columns: 1fr;
   }
 
