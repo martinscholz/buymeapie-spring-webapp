@@ -65,6 +65,7 @@ button {
   border-radius: 8px;
   padding: 24px;
   min-width: 0;
+  overflow: hidden;
 }
 
 .brand,
@@ -278,6 +279,7 @@ select:focus {
 .panel-toolbar {
   justify-content: space-between;
   gap: 12px;
+  flex-wrap: wrap;
 }
 
 .segmented-control {
@@ -302,12 +304,13 @@ select:focus {
 }
 
 #search-items {
-  max-width: 260px;
+  flex: 1 1 220px;
+  max-width: 360px;
 }
 
 .filter-grid {
   display: grid;
-  grid-template-columns: minmax(140px, 1fr) repeat(4, minmax(130px, .8fr)) auto;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   gap: 10px;
   align-items: end;
 }
@@ -425,8 +428,7 @@ select:focus {
   gap: 6px;
 }
 
-.group-pill,
-.time-pill {
+.group-pill {
   flex: 0 0 auto;
   border-radius: 999px;
   background: #e8f4ef;
@@ -434,11 +436,6 @@ select:focus {
   padding: 4px 9px;
   font-size: .82rem;
   font-weight: 800;
-}
-
-.time-pill {
-  background: #eef3f5;
-  color: var(--muted);
 }
 
 .item-actions {

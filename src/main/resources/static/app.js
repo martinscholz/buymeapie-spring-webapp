@@ -211,8 +211,6 @@ function renderItemRow(item) {
       <span class="item-meta">
         <span class="amount"></span>
         <span class="group-pill"></span>
-        <span class="time-pill created-time"></span>
-        <span class="time-pill updated-time"></span>
       </span>
     </div>
     <div class="item-actions">
@@ -226,12 +224,6 @@ function renderItemRow(item) {
   amount.textContent = itemAmount(item);
   amount.hidden = !itemAmount(item);
   row.querySelector(".group-pill").textContent = itemGroup(item);
-  const createdTime = row.querySelector(".created-time");
-  const updatedTime = row.querySelector(".updated-time");
-  createdTime.textContent = formatDateTime(itemCreatedAt(item)) ? `Created ${formatDateTime(itemCreatedAt(item))}` : "";
-  updatedTime.textContent = formatDateTime(itemUpdatedAt(item)) ? `Updated ${formatDateTime(itemUpdatedAt(item))}` : "";
-  createdTime.hidden = !createdTime.textContent;
-  updatedTime.hidden = !updatedTime.textContent;
   row.querySelector(".check-button").addEventListener("click", () => setPurchased(item, !purchased));
   row.querySelector(".inspect").addEventListener("click", () => selectItem(item));
   row.querySelector(".edit").addEventListener("click", () => editItem(item));
