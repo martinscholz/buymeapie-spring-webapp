@@ -119,13 +119,13 @@ public class BuyMeAPieClient {
             @CacheEvict(cacheNames = "listItems", allEntries = true),
             @CacheEvict(cacheNames = "uniqueItems", allEntries = true)
     })
-    public JsonNode addShoppingItem(String listId, String title, String amount, boolean purchased, String group)
+    public JsonNode addShoppingItem(String listId, String title, String amount, boolean purchased, String group, Integer groupId)
             throws IOException, InterruptedException {
         ObjectNode payload = mapper.createObjectNode()
                 .put("title", title)
                 .put("amount", amount == null ? "" : amount)
                 .put("is_purchased", purchased);
-        putGroup(payload, group);
+        putGroup(payload, group, groupId);
         return request("POST", "/lists/" + encodePath(listId) + "/items", payload);
     }
 
@@ -135,13 +135,13 @@ public class BuyMeAPieClient {
             @CacheEvict(cacheNames = "listItems", allEntries = true),
             @CacheEvict(cacheNames = "uniqueItems", allEntries = true)
     })
-    public JsonNode updateItem(String listId, String itemId, String title, String amount, Boolean purchased, String group)
+    public JsonNode updateItem(String listId, String itemId, String title, String amount, Boolean purchased, String group, Integer groupId)
             throws IOException, InterruptedException {
         ObjectNode payload = mapper.createObjectNode();
         if (title != null) payload.put("title", title);
         if (amount != null) payload.put("amount", amount);
         if (purchased != null) payload.put("is_purchased", purchased);
-        putGroup(payload, group);
+        putGroup(payload, group, groupId);
         if (payload.isEmpty()) throw new IllegalArgumentException("At least one item field must be supplied");
         return request("PUT", "/lists/" + encodePath(listId) + "/items/" + encodePath(itemId), payload);
     }
@@ -155,8 +155,10 @@ public class BuyMeAPieClient {
         return request("DELETE", "/lists/" + encodePath(listId) + "/items/" + encodePath(itemId), null);
     }
 
-    private static void putGroup(ObjectNode payload, String group) {
-        if (group != null && !group.isBlank()) {
+    private static void putGroup(ObjectNode payload, String group, Integer groupId) {
+        if (groupId != null) {
+            payload.put("group_id", groupId);
+        } else if (group != null && !group.isBlank()) {
             payload.put("group", group.trim());
         }
     }

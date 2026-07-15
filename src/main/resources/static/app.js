@@ -70,9 +70,65 @@ function itemGroup(item) {
   const candidate = item.group || item.group_name || item.groupName || item.category || item.section || item.department;
   if (typeof candidate === "string" && candidate.trim()) return candidate.trim();
   if (candidate && typeof candidate === "object") {
-    return candidate.name || candidate.title || candidate.id || "Other";
+    return candidate.name || candidate.title || groupLabelForId(normalizeGroupId(candidate.id ?? candidate.group_id)) || "Other";
   }
+  const groupId = itemGroupId(item);
+  if (groupId !== null) return groupLabelForId(groupId);
   return "Ungrouped";
+}
+
+function itemGroupId(item) {
+  return normalizeGroupId(item.group_id ?? item.groupId ?? item.group?.id ?? item.category_id ?? item.section_id ?? item.department_id);
+}
+
+function normalizeGroupId(value) {
+  if (value === null || value === undefined || value === "") return null;
+  return String(value);
+}
+
+function groupLabelForId(groupId) {
+  if (groupId === null) return null;
+  const definitions = groupDefinitionMap();
+  if (definitions.has(groupId)) return definitions.get(groupId);
+  return groupId === "0" ? "Ungrouped" : `Group ${groupId}`;
+}
+
+function groupDefinitionMap() {
+  const definitions = new Map();
+  collectGroupDefinitions(state.currentList, "", definitions);
+  return definitions;
+}
+
+function collectGroupDefinitions(value, key, definitions) {
+  if (!value || typeof value !== "object") return;
+  const groupKey = /group|categor|section|department/i.test(key);
+  if (Array.isArray(value)) {
+    if (groupKey) {
+      value.forEach((entry) => addGroupDefinition(entry, definitions));
+    }
+    value.forEach((entry) => collectGroupDefinitions(entry, key, definitions));
+    return;
+  }
+  if (groupKey) {
+    addGroupDefinition(value, definitions);
+    Object.entries(value).forEach(([entryKey, entry]) => {
+      if (typeof entry === "string" && entry.trim()) {
+        definitions.set(entryKey, entry.trim());
+      } else {
+        addGroupDefinition(entry, definitions);
+      }
+    });
+  }
+  Object.entries(value).forEach(([childKey, childValue]) => collectGroupDefinitions(childValue, childKey, definitions));
+}
+
+function addGroupDefinition(value, definitions) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return;
+  const id = normalizeGroupId(value.id ?? value.group_id ?? value.groupId ?? value.value);
+  const name = value.name ?? value.title ?? value.label ?? value.text;
+  if (id !== null && typeof name === "string" && name.trim()) {
+    definitions.set(id, name.trim());
+  }
 }
 
 function itemId(item) {
@@ -388,7 +444,7 @@ async function loadUniqueItems(force = false) {
 }
 
 function renderGroupSuggestions() {
-  const groups = [...new Set(state.items.map(itemGroup))]
+  const groups = availableGroupLabels()
     .filter((group) => group && group !== "Ungrouped")
     .sort((a, b) => a.localeCompare(b));
   $("#group-suggestions").innerHTML = groups
@@ -398,8 +454,7 @@ function renderGroupSuggestions() {
 
 function renderFilterGroups() {
   const select = $("#filter-group");
-  const groups = [...new Set(state.items.map(itemGroup))]
-    .filter(Boolean)
+  const groups = availableGroupLabels()
     .sort((a, b) => {
       if (a === "Ungrouped") return 1;
       if (b === "Ungrouped") return -1;
@@ -411,6 +466,25 @@ function renderFilterGroups() {
     .join("");
   select.value = groups.includes(current) ? current : "";
   state.groupFilter = select.value;
+}
+
+function availableGroupLabels() {
+  const labels = new Set(state.items.map(itemGroup).filter(Boolean));
+  groupDefinitionMap().forEach((name) => labels.add(name));
+  return [...labels];
+}
+
+function groupInputPayload(value) {
+  const trimmed = value.trim();
+  if (!trimmed) return {};
+  const match = [...groupDefinitionMap().entries()]
+    .find(([, name]) => name.toLowerCase() === trimmed.toLowerCase());
+  if (match && /^-?\d+$/.test(match[0])) return { groupId: Number(match[0]) };
+  if (match) return { group: match[1] };
+  const fallbackMatch = trimmed.match(/^group\s+(-?\d+)$/i);
+  if (fallbackMatch) return { groupId: Number(fallbackMatch[1]) };
+  if (/^\d+$/.test(trimmed)) return { groupId: Number(trimmed) };
+  return { group: trimmed };
 }
 
 function extractStrings(value, result = new Set()) {
@@ -460,7 +534,7 @@ async function editItem(item) {
   try {
     await api(`/api/lists/${state.currentListId}/items/${itemId(item)}`, {
       method: "PATCH",
-      body: JSON.stringify({ title: title.trim(), amount, group })
+      body: JSON.stringify({ title: title.trim(), amount, ...groupInputPayload(group) })
     });
     await afterMutation(itemId(item));
   } catch (error) {
@@ -508,7 +582,7 @@ $("#add-item-form").addEventListener("submit", async (event) => {
   try {
     const created = await api(`/api/lists/${state.currentListId}/items`, {
       method: "POST",
-      body: JSON.stringify({ title: title.value.trim(), amount: amount.value.trim(), group: group.value.trim(), purchased: false })
+      body: JSON.stringify({ title: title.value.trim(), amount: amount.value.trim(), ...groupInputPayload(group.value), purchased: false })
     });
     title.value = "";
     amount.value = "";
