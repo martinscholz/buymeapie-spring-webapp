@@ -128,7 +128,8 @@ h1 {
 }
 
 input,
-textarea {
+textarea,
+select {
   width: 100%;
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -139,7 +140,8 @@ textarea {
 }
 
 input:focus,
-textarea:focus {
+textarea:focus,
+select:focus {
   border-color: var(--leaf);
   box-shadow: 0 0 0 3px rgba(46, 125, 98, .12);
 }
@@ -303,6 +305,32 @@ textarea:focus {
   max-width: 260px;
 }
 
+.filter-grid {
+  display: grid;
+  grid-template-columns: minmax(140px, 1fr) repeat(4, minmax(130px, .8fr)) auto;
+  gap: 10px;
+  align-items: end;
+}
+
+.filter-grid label {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
+.filter-grid span {
+  color: var(--muted);
+  font-size: .76rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.filter-grid input,
+.filter-grid select,
+.filter-grid button {
+  min-height: 44px;
+}
+
 .item-list {
   display: grid;
   gap: 10px;
@@ -397,7 +425,8 @@ textarea:focus {
   gap: 6px;
 }
 
-.group-pill {
+.group-pill,
+.time-pill {
   flex: 0 0 auto;
   border-radius: 999px;
   background: #e8f4ef;
@@ -405,6 +434,11 @@ textarea:focus {
   padding: 4px 9px;
   font-size: .82rem;
   font-weight: 800;
+}
+
+.time-pill {
+  background: #eef3f5;
+  color: var(--muted);
 }
 
 .item-actions {
@@ -567,6 +601,10 @@ pre {
   #search-items {
     width: 100%;
     max-width: none;
+  }
+
+  .filter-grid {
+    grid-template-columns: 1fr;
   }
 
   .add-item {

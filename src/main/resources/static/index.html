@@ -77,6 +77,31 @@
           </div>
           <input id="search-items" type="search" placeholder="Search items">
         </div>
+        <div class="filter-grid" aria-label="Advanced item filters">
+          <label>
+            <span>Group</span>
+            <select id="filter-group">
+              <option value="">All groups</option>
+            </select>
+          </label>
+          <label>
+            <span>Created from</span>
+            <input id="filter-created-from" type="date">
+          </label>
+          <label>
+            <span>Created to</span>
+            <input id="filter-created-to" type="date">
+          </label>
+          <label>
+            <span>Updated from</span>
+            <input id="filter-updated-from" type="date">
+          </label>
+          <label>
+            <span>Updated to</span>
+            <input id="filter-updated-to" type="date">
+          </label>
+          <button id="clear-filters" class="ghost-button" type="button">Clear</button>
+        </div>
         <ul id="item-list" class="item-list"></ul>
       </section>
     </section>

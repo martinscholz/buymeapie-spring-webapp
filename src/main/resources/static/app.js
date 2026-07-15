@@ -6,6 +6,11 @@ const state = {
   items: [],
   filter: "all",
   query: "",
+  groupFilter: "",
+  createdFrom: "",
+  createdTo: "",
+  updatedFrom: "",
+  updatedTo: "",
   account: null,
   restrictions: null,
   cache: new Map()
@@ -74,6 +79,47 @@ function itemId(item) {
   return item.id || item.uuid || item.item_id || itemTitle(item);
 }
 
+function itemCreatedAt(item) {
+  return item.created_at ?? item.createdAt ?? item.created ?? item.created_on ?? item.createdOn;
+}
+
+function itemUpdatedAt(item) {
+  return item.updated_at ?? item.updatedAt ?? item.modified_at ?? item.modifiedAt ?? item.updated_on ?? item.updatedOn;
+}
+
+function parseTimestamp(value) {
+  if (value === null || value === undefined || value === "") return null;
+  if (typeof value === "number") {
+    const millis = value < 10_000_000_000 ? value * 1000 : value;
+    const date = new Date(millis);
+    return Number.isNaN(date.getTime()) ? null : date;
+  }
+  if (typeof value === "string" && /^\d+$/.test(value.trim())) {
+    return parseTimestamp(Number(value));
+  }
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function formatDateTime(value) {
+  const date = parseTimestamp(value);
+  if (!date) return "";
+  return new Intl.DateTimeFormat(undefined, {
+    dateStyle: "medium",
+    timeStyle: "short"
+  }).format(date);
+}
+
+function filterBoundary(value, endOfDay = false) {
+  if (!value) return null;
+  const date = new Date(`${value}T00:00:00`);
+  if (Number.isNaN(date.getTime())) return null;
+  if (endOfDay) {
+    date.setHours(23, 59, 59, 999);
+  }
+  return date;
+}
+
 function listName(list) {
   return list.name || "Untitled list";
 }
@@ -118,6 +164,7 @@ function renderCurrentList() {
   $("#current-list-title").textContent = state.currentList ? listName(state.currentList) : "Shopping lists";
   renderSummary();
   renderGroupSuggestions();
+  renderFilterGroups();
   renderItems();
   renderSelectedItem();
 }
@@ -130,7 +177,8 @@ function renderItems() {
     const haystack = `${itemTitle(item)} ${itemAmount(item)} ${itemGroup(item)} ${JSON.stringify(item)}`.toLowerCase();
     const matchesFilter = state.filter === "all" || (state.filter === "open" && !purchased) || (state.filter === "purchased" && purchased);
     const matchesQuery = !normalizedQuery || haystack.includes(normalizedQuery);
-    return matchesFilter && matchesQuery;
+    return matchesFilter && matchesQuery && matchesGroup(item) && matchesDateRange(itemCreatedAt(item), state.createdFrom, state.createdTo) &&
+      matchesDateRange(itemUpdatedAt(item), state.updatedFrom, state.updatedTo);
   });
 
   if (!filtered.length) {
@@ -163,6 +211,8 @@ function renderItemRow(item) {
       <span class="item-meta">
         <span class="amount"></span>
         <span class="group-pill"></span>
+        <span class="time-pill created-time"></span>
+        <span class="time-pill updated-time"></span>
       </span>
     </div>
     <div class="item-actions">
@@ -176,6 +226,12 @@ function renderItemRow(item) {
   amount.textContent = itemAmount(item);
   amount.hidden = !itemAmount(item);
   row.querySelector(".group-pill").textContent = itemGroup(item);
+  const createdTime = row.querySelector(".created-time");
+  const updatedTime = row.querySelector(".updated-time");
+  createdTime.textContent = formatDateTime(itemCreatedAt(item)) ? `Created ${formatDateTime(itemCreatedAt(item))}` : "";
+  updatedTime.textContent = formatDateTime(itemUpdatedAt(item)) ? `Updated ${formatDateTime(itemUpdatedAt(item))}` : "";
+  createdTime.hidden = !createdTime.textContent;
+  updatedTime.hidden = !updatedTime.textContent;
   row.querySelector(".check-button").addEventListener("click", () => setPurchased(item, !purchased));
   row.querySelector(".inspect").addEventListener("click", () => selectItem(item));
   row.querySelector(".edit").addEventListener("click", () => editItem(item));
@@ -196,6 +252,19 @@ function groupedItems(items) {
     if (b === "Ungrouped") return -1;
     return a.localeCompare(b);
   });
+}
+
+function matchesGroup(item) {
+  return !state.groupFilter || itemGroup(item) === state.groupFilter;
+}
+
+function matchesDateRange(rawValue, from, to) {
+  const date = parseTimestamp(rawValue);
+  if (!from && !to) return true;
+  if (!date) return false;
+  const start = filterBoundary(from);
+  const end = filterBoundary(to, true);
+  return (!start || date >= start) && (!end || date <= end);
 }
 
 function selectItem(item) {
@@ -220,16 +289,19 @@ function renderSelectedItem() {
     return;
   }
   summary.className = "detail-summary";
-  summary.innerHTML = `<strong></strong><span></span><span></span>`;
+  summary.innerHTML = `<strong></strong><span></span><span></span><span></span><span></span>`;
   summary.querySelector("strong").textContent = itemTitle(item);
-  summary.querySelectorAll("span")[0].textContent = `Group: ${itemGroup(item)}`;
-  summary.querySelectorAll("span")[1].textContent = itemPurchased(item) ? "Purchased" : "Open";
+  const spans = summary.querySelectorAll("span");
+  spans[0].textContent = `Group: ${itemGroup(item)}`;
+  spans[1].textContent = itemPurchased(item) ? "Purchased" : "Open";
+  spans[2].textContent = formatDateTime(itemCreatedAt(item)) ? `Created: ${formatDateTime(itemCreatedAt(item))}` : "Created: n/a";
+  spans[3].textContent = formatDateTime(itemUpdatedAt(item)) ? `Updated: ${formatDateTime(itemUpdatedAt(item))}` : "Updated: n/a";
   fields.innerHTML = "";
   Object.entries(flattenObject(item)).forEach(([key, value]) => {
     const dt = document.createElement("dt");
     const dd = document.createElement("dd");
     dt.textContent = key;
-    dd.textContent = formatValue(value);
+    dd.textContent = formatAttributeValue(key, value);
     fields.append(dt, dd);
   });
   json.textContent = JSON.stringify(item, null, 2);
@@ -251,11 +323,18 @@ function flattenObject(value, prefix = "", result = {}) {
   return result;
 }
 
-function formatValue(value) {
+function formatAttributeValue(key, value) {
+  if (looksLikeTimestampKey(key)) {
+    return formatDateTime(value) || String(value ?? "");
+  }
   if (value === null) return "null";
   if (value === undefined) return "";
   if (typeof value === "object") return JSON.stringify(value);
   return String(value);
+}
+
+function looksLikeTimestampKey(key) {
+  return /(^|[._-])(created|updated|modified)(_|-|$|at|on)/i.test(key || "");
 }
 
 async function loadLists(selectFirst = false, force = false) {
@@ -323,6 +402,23 @@ function renderGroupSuggestions() {
   $("#group-suggestions").innerHTML = groups
     .map((value) => `<option value="${escapeHtml(value)}"></option>`)
     .join("");
+}
+
+function renderFilterGroups() {
+  const select = $("#filter-group");
+  const groups = [...new Set(state.items.map(itemGroup))]
+    .filter(Boolean)
+    .sort((a, b) => {
+      if (a === "Ungrouped") return 1;
+      if (b === "Ungrouped") return -1;
+      return a.localeCompare(b);
+    });
+  const current = state.groupFilter;
+  select.innerHTML = `<option value="">All groups</option>` + groups
+    .map((value) => `<option value="${escapeHtml(value)}">${escapeHtml(value)}</option>`)
+    .join("");
+  select.value = groups.includes(current) ? current : "";
+  state.groupFilter = select.value;
 }
 
 function extractStrings(value, result = new Set()) {
@@ -491,6 +587,37 @@ document.querySelectorAll("[data-filter]").forEach((button) => {
 
 $("#search-items").addEventListener("input", (event) => {
   state.query = event.target.value;
+  renderItems();
+});
+
+$("#filter-group").addEventListener("change", (event) => {
+  state.groupFilter = event.target.value;
+  renderItems();
+});
+
+[
+  ["#filter-created-from", "createdFrom"],
+  ["#filter-created-to", "createdTo"],
+  ["#filter-updated-from", "updatedFrom"],
+  ["#filter-updated-to", "updatedTo"]
+].forEach(([selector, key]) => {
+  $(selector).addEventListener("change", (event) => {
+    state[key] = event.target.value;
+    renderItems();
+  });
+});
+
+$("#clear-filters").addEventListener("click", () => {
+  state.groupFilter = "";
+  state.createdFrom = "";
+  state.createdTo = "";
+  state.updatedFrom = "";
+  state.updatedTo = "";
+  $("#filter-group").value = "";
+  $("#filter-created-from").value = "";
+  $("#filter-created-to").value = "";
+  $("#filter-updated-from").value = "";
+  $("#filter-updated-to").value = "";
   renderItems();
 });
 
