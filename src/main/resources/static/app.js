@@ -169,8 +169,6 @@ function renderCurrentList() {
   $("#empty-state").hidden = hasList;
   $("#items-panel").hidden = !hasList;
   $("#add-item-form").querySelectorAll("input,button").forEach((element) => element.disabled = !hasList);
-  $("#rename-list-name").value = state.currentList ? listName(state.currentList) : "";
-  $("#share-emails").value = Array.isArray(state.currentList?.emails) ? state.currentList.emails.join(", ") : "";
   $("#current-list-title").textContent = state.currentList ? listName(state.currentList) : "Shopping lists";
   renderSummary();
   renderGroupSuggestions();
@@ -296,8 +294,6 @@ async function loadAccount(force = false) {
   state.account = account;
   state.restrictions = restrictions;
   $("#account-label").textContent = account.email || account.login || account.name || "Connected account";
-  $("#account-json").textContent = JSON.stringify(account, null, 2);
-  $("#restrictions-json").textContent = JSON.stringify(restrictions, null, 2);
 }
 
 async function loadUniqueItems(force = false) {
@@ -457,54 +453,7 @@ $("#add-item-form").addEventListener("submit", async (event) => {
   }
 });
 
-$("#rename-list-form").addEventListener("submit", async (event) => {
-  event.preventDefault();
-  if (!state.currentListId) return;
-  try {
-    await api(`/api/lists/${state.currentListId}`, {
-      method: "PUT",
-      body: JSON.stringify({ name: $("#rename-list-name").value.trim(), emails: state.currentList?.emails || [] })
-    });
-    await afterMutation();
-  } catch (error) {
-    showToast(error.message);
-  }
-});
-
-$("#save-share-button").addEventListener("click", async () => {
-  if (!state.currentListId) return;
-  const emails = $("#share-emails").value.split(/[\n,;]/).map((email) => email.trim()).filter(Boolean);
-  try {
-    await api(`/api/lists/${state.currentListId}`, {
-      method: "PUT",
-      body: JSON.stringify({ name: $("#rename-list-name").value.trim(), emails })
-    });
-    await afterMutation();
-    showToast("Sharing updated");
-  } catch (error) {
-    showToast(error.message);
-  }
-});
-
-$("#delete-list-button").addEventListener("click", async () => {
-  if (!state.currentListId || !confirm(`Delete "${listName(state.currentList)}" permanently?`)) return;
-  try {
-    await api(`/api/lists/${state.currentListId}`, { method: "DELETE" });
-    state.currentListId = null;
-    state.currentList = null;
-    state.items = [];
-    state.cache.clear();
-    await loadLists(true, true);
-    if (state.currentListId) await selectList(state.currentListId, true);
-    renderCurrentList();
-  } catch (error) {
-    showToast(error.message);
-  }
-});
-
 $("#refresh-button").addEventListener("click", refresh);
-$("#details-button").addEventListener("click", () => $("#details-drawer").classList.add("open"));
-$("#close-details").addEventListener("click", () => $("#details-drawer").classList.remove("open"));
 
 document.querySelectorAll("[data-filter]").forEach((button) => {
   button.addEventListener("click", () => {

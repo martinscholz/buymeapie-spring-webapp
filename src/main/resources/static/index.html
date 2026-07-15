@@ -33,7 +33,6 @@
         </div>
         <div class="top-actions">
           <button id="refresh-button" class="ghost-button" type="button">Refresh</button>
-          <button id="details-button" class="ghost-button" type="button">Account</button>
         </div>
       </header>
 
@@ -90,34 +89,6 @@
       </section>
     </section>
 
-    <aside id="details-drawer" class="details-drawer" aria-label="Account details">
-      <div class="drawer-header">
-        <h2>Details</h2>
-        <button id="close-details" type="button" title="Close">x</button>
-      </div>
-
-      <section class="drawer-section">
-        <h3>Current List</h3>
-        <form id="rename-list-form">
-          <input id="rename-list-name" type="text" placeholder="List name">
-          <button type="submit">Rename</button>
-        </form>
-        <label class="field-label" for="share-emails">Shared emails</label>
-        <textarea id="share-emails" rows="4" placeholder="one@example.com, two@example.com"></textarea>
-        <button id="save-share-button" type="button">Save sharing</button>
-        <button id="delete-list-button" class="danger-button" type="button">Delete list</button>
-      </section>
-
-      <section class="drawer-section">
-        <h3>Account</h3>
-        <pre id="account-json">Loading...</pre>
-      </section>
-
-      <section class="drawer-section">
-        <h3>Restrictions</h3>
-        <pre id="restrictions-json">Loading...</pre>
-      </section>
-    </aside>
   </main>
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
