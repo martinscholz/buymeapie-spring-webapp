@@ -7,8 +7,11 @@ RUN mvn -q -DskipTests package
 FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
 RUN addgroup -S spring && adduser -S spring -G spring
+RUN mkdir /data && chown spring:spring /data
 COPY --from=build /workspace/target/buymeapie-spring-webapp-*.jar app.jar
 USER spring:spring
+ENV APP_DATA_DIR=/data
+VOLUME ["/data"]
 EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=3s --start-period=30s CMD wget -qO- http://localhost:8080/actuator/health/readiness | grep -q UP || exit 1
 ENTRYPOINT ["java", "-jar", "/app/app.jar"]

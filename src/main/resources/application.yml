@@ -1,6 +1,14 @@
 spring:
   application:
     name: buymeapie-webapp
+  datasource:
+    url: jdbc:h2:file:${APP_DATA_DIR:./data}/buymeapie;DB_CLOSE_ON_EXIT=FALSE
+    username: sa
+    password:
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
   cache:
     type: simple
     cache-names: account,restrictions,lists,listDetails,listItems,uniqueItems

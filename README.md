@@ -11,6 +11,7 @@ A modern Spring Boot 3 web application for Buy Me a Pie shopping lists. It turns
 - Group items in the UI and inspect every raw attribute returned for a selected item.
 - Load the autocomplete item dictionary for faster entry.
 - Cache read-heavy API calls on the server and in the browser, with automatic invalidation after writes.
+- Provide a persistent, app-owned shopping route that learns item placements without changing Buy Me a Pie groups.
 - Provide a responsive single-page interface backed by Spring Boot REST APIs.
 - Run as a Docker container with health checks.
 
@@ -39,6 +40,8 @@ cp .env.example .env
 docker compose up --build
 ```
 
+The Docker Compose volume `buymeapie-data` keeps learned shopping-route assignments between container restarts.
+
 Or build and run directly:
 
 ```bash
@@ -66,6 +69,9 @@ The frontend uses these server-side routes:
 - `PUT /api/lists/{listId}/items/{itemId}/purchased`
 - `DELETE /api/lists/{listId}/items/{itemId}`
 - `GET /api/unique-items`
+- `GET /api/shopping-route/categories`
+- `POST /api/shopping-route/resolve`
+- `PUT /api/shopping-route/assignments`
 
 ## Safety
 

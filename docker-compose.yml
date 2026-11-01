@@ -7,3 +7,8 @@ services:
       BUYMEAPIE_USERNAME: ${BUYMEAPIE_USERNAME}
       BUYMEAPIE_PIN: ${BUYMEAPIE_PIN}
       BUYMEAPIE_BASE_URL: ${BUYMEAPIE_BASE_URL:-https://api.buymeapie.com}
+    volumes:
+      - buymeapie-data:/data
+
+volumes:
+  buymeapie-data:

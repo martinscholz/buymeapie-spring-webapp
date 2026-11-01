@@ -9,6 +9,8 @@ const state = {
   assignMode: false,
   assignmentGroup: "",
   workspace: "items",
+  shoppingCategories: [],
+  shoppingRoutes: new Map(),
   account: null,
   restrictions: null,
   cache: new Map()
@@ -45,10 +47,11 @@ async function api(path, options = {}) {
     const body = await response.json().catch(() => ({ message: response.statusText }));
     throw new Error(body.message || response.statusText);
   }
+  if (response.status === 204) return null;
   const data = await response.json();
   if (method === "GET") {
     state.cache.set(cacheKey, { time: Date.now(), data });
-  } else {
+  } else if (options.cacheInvalidate !== false) {
     state.cache.clear();
   }
   return data;
@@ -214,11 +217,103 @@ function renderCurrentList() {
 
 function renderWorkspace() {
   const admin = state.workspace === "admin";
-  $("#items-workspace").hidden = admin;
+  const shopping = state.workspace === "shop";
+  $("#items-workspace").hidden = admin || shopping;
   $("#admin-workspace").hidden = !admin;
+  $("#shop-workspace").hidden = !shopping;
   $("#items-tab-button").classList.toggle("active", !admin);
   $("#admin-tab-button").classList.toggle("active", admin);
+  $("#items-tab-button").classList.toggle("active", !admin && !shopping);
+  $("#shop-tab-button").classList.toggle("active", shopping);
   if (admin) renderSpellingIssues();
+  if (shopping) renderShopMode();
+}
+
+function categoryFor(code) {
+  return state.shoppingCategories.find((category) => category.code === code);
+}
+
+async function loadShoppingRoute() {
+  if (!state.items.length) {
+    state.shoppingRoutes = new Map();
+    return;
+  }
+  const routes = await api("/api/shopping-route/resolve", {
+    method: "POST",
+    cacheInvalidate: false,
+    body: JSON.stringify({ items: state.items.map((item) => ({ id: String(itemId(item)), title: itemTitle(item) })) })
+  });
+  state.shoppingRoutes = new Map(routes.map((route) => [String(route.id), route]));
+}
+
+function routeForItem(item) {
+  return state.shoppingRoutes.get(String(itemId(item))) || { category: null, source: "unassigned" };
+}
+
+function renderShopMode() {
+  const target = $("#shop-route");
+  const openItems = state.items.filter((item) => !itemPurchased(item));
+  $("#shop-progress").textContent = `${openItems.length} open`;
+  if (!state.currentListId) {
+    target.innerHTML = `<div class="admin-empty"><h4>Select a list</h4><p>Choose Groceries to build a route through the store.</p></div>`;
+    return;
+  }
+  if (!openItems.length) {
+    target.innerHTML = `<div class="admin-empty"><h4>Route complete</h4><p>Every item in this list is marked as purchased.</p></div>`;
+    return;
+  }
+  const sections = new Map(state.shoppingCategories.map((category) => [category.code, []]));
+  const unassigned = [];
+  for (const item of openItems) {
+    const route = routeForItem(item);
+    if (route.category && sections.has(route.category)) sections.get(route.category).push({ item, route });
+    else unassigned.push({ item, route });
+  }
+  target.innerHTML = "";
+  for (const category of state.shoppingCategories) {
+    const entries = sections.get(category.code);
+    if (entries.length) target.append(renderShopSection(category, entries));
+  }
+  if (unassigned.length) target.append(renderShopSection({ code: "unassigned", name: "Place these items", color: "#8b6d35" }, unassigned));
+}
+
+function renderShopSection(category, entries) {
+  const section = document.createElement("section");
+  section.className = "shop-section";
+  section.style.setProperty("--route-color", category.color);
+  section.innerHTML = `<h4><span></span>${escapeHtml(category.name)} <small>${entries.length}</small></h4><ul></ul>`;
+  const list = section.querySelector("ul");
+  for (const { item, route } of entries) {
+    const row = document.createElement("li");
+    row.className = "shop-item";
+    row.innerHTML = `<button class="shop-check" type="button" title="Mark purchased">✓</button><div><strong></strong><span></span></div><label class="route-select"><span>Section</span><select></select></label>`;
+    row.querySelector("strong").textContent = itemTitle(item);
+    row.querySelector("div span").textContent = itemAmount(item);
+    row.querySelector("div span").hidden = !itemAmount(item);
+    row.querySelector(".shop-check").addEventListener("click", () => setPurchased(item, true));
+    const select = row.querySelector("select");
+    select.innerHTML = `<option value="">Choose section</option>` + state.shoppingCategories
+      .map((itemCategory) => `<option value="${escapeHtml(itemCategory.code)}">${escapeHtml(itemCategory.name)}</option>`).join("");
+    select.value = route.category || "";
+    select.addEventListener("change", () => saveRouteAssignment(item, select.value));
+    list.append(row);
+  }
+  return section;
+}
+
+async function saveRouteAssignment(item, category) {
+  if (!category) return;
+  try {
+    await api("/api/shopping-route/assignments", {
+      method: "PUT",
+      body: JSON.stringify({ title: itemTitle(item), category })
+    });
+    await loadShoppingRoute();
+    renderShopMode();
+    showToast(`Saved ${categoryFor(category).name} for "${itemTitle(item)}"`);
+  } catch (error) {
+    showToast(error.message);
+  }
 }
 
 function spellingIssues() {
@@ -396,13 +491,14 @@ async function selectList(listId, force = false) {
   const data = await api(`/api/lists/${encodeURIComponent(listId)}`, { force });
   state.currentList = data.list;
   state.items = Array.isArray(data.items) ? data.items : [];
+  await loadShoppingRoute();
   renderCurrentList();
 }
 
 async function refresh() {
   try {
     state.cache.clear();
-    await Promise.all([loadLists(true, true), loadAccount(true), loadUniqueItems(true)]);
+    await Promise.all([loadLists(true, true), loadAccount(true), loadUniqueItems(true), loadShoppingCategories(true)]);
     if (state.currentListId) {
       await selectList(state.currentListId, true);
     } else {
@@ -430,6 +526,10 @@ async function loadUniqueItems(force = false) {
     .slice(0, 500)
     .map((value) => `<option value="${escapeHtml(value)}"></option>`)
     .join("");
+}
+
+async function loadShoppingCategories(force = false) {
+  state.shoppingCategories = await api("/api/shopping-route/categories", { force });
 }
 
 function renderGroupSuggestions() {
@@ -617,6 +717,11 @@ $("#refresh-button").addEventListener("click", refresh);
 
 $("#items-tab-button").addEventListener("click", () => {
   state.workspace = "items";
+  renderWorkspace();
+});
+
+$("#shop-tab-button").addEventListener("click", () => {
+  state.workspace = "shop";
   renderWorkspace();
 });
 

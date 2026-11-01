@@ -15,14 +15,17 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import technology.scholz.buymeapie.web.client.BuyMeAPieClient;
+import technology.scholz.buymeapie.web.route.ShoppingRouteService;
 
 @RestController
 @RequestMapping("/api")
 public class BuyMeAPieController {
     private final BuyMeAPieClient client;
+    private final ShoppingRouteService shoppingRouteService;
 
-    public BuyMeAPieController(BuyMeAPieClient client) {
+    public BuyMeAPieController(BuyMeAPieClient client, ShoppingRouteService shoppingRouteService) {
         this.client = client;
+        this.shoppingRouteService = shoppingRouteService;
     }
 
     @GetMapping("/account")
@@ -94,8 +97,26 @@ public class BuyMeAPieController {
         return client.uniqueItems();
     }
 
+    @GetMapping("/shopping-route/categories")
+    Object shoppingRouteCategories() {
+        return shoppingRouteService.categories();
+    }
+
+    @PostMapping("/shopping-route/resolve")
+    Object resolveShoppingRoute(@RequestBody RouteResolveRequest request) throws Exception {
+        return shoppingRouteService.resolve(client.whoAmI(), request.items());
+    }
+
+    @PutMapping("/shopping-route/assignments")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    void saveShoppingRouteAssignment(@Valid @RequestBody RouteAssignmentRequest request) throws Exception {
+        shoppingRouteService.assign(client.whoAmI(), request.title(), request.category());
+    }
+
     public record ListRequest(@NotBlank String name, JsonNode emails) {}
     public record CreateItemRequest(@NotBlank String title, String amount, Boolean purchased, String group, Integer groupId) {}
     public record ItemRequest(String title, String amount, Boolean purchased, String group, Integer groupId) {}
     public record PurchasedRequest(Boolean purchased) {}
+    public record RouteResolveRequest(java.util.List<ShoppingRouteService.ItemToResolve> items) {}
+    public record RouteAssignmentRequest(@NotBlank String title, @NotBlank String category) {}
 }

@@ -33,6 +33,7 @@
         </div>
         <div class="top-actions">
           <button id="items-tab-button" class="ghost-button active" type="button">Items</button>
+          <button id="shop-tab-button" class="ghost-button" type="button">Shop mode</button>
           <button id="admin-tab-button" class="ghost-button" type="button">Admin</button>
           <button id="refresh-button" class="ghost-button" type="button">Refresh</button>
         </div>
@@ -110,6 +111,18 @@
         </header>
         <p class="admin-copy">Review high-confidence corrections detected in the current list. Accepting a suggestion only changes that item name.</p>
         <div id="spelling-issues" class="spelling-issues"></div>
+      </section>
+
+      <section id="shop-workspace" class="shop-workspace" hidden>
+        <header class="shop-header">
+          <div>
+            <p class="eyebrow">Shopping route</p>
+            <h3>Ready for the store</h3>
+          </div>
+          <span id="shop-progress" class="shop-progress"></span>
+        </header>
+        <p class="shop-copy">Open items are arranged in a practical supermarket order. Choose a section for unassigned items once and the app will remember it.</p>
+        <div id="shop-route" class="shop-route"></div>
       </section>
     </section>
 

@@ -371,6 +371,145 @@ select:focus {
   margin-bottom: 0;
 }
 
+.shop-workspace {
+  display: grid;
+  gap: 16px;
+}
+
+.shop-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--line);
+}
+
+.shop-header h3 {
+  margin-bottom: 0;
+  font-size: 1.35rem;
+}
+
+.shop-progress {
+  border-radius: 999px;
+  background: #edf3f5;
+  color: var(--muted);
+  padding: 6px 10px;
+  font-size: .84rem;
+  font-weight: 900;
+}
+
+.shop-copy {
+  margin-bottom: 0;
+  color: var(--muted);
+}
+
+.shop-route {
+  display: grid;
+  gap: 18px;
+}
+
+.shop-section {
+  display: grid;
+  gap: 8px;
+}
+
+.shop-section h4 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  color: var(--route-color);
+  font-size: .9rem;
+}
+
+.shop-section h4 span {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--route-color);
+}
+
+.shop-section h4 small {
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--route-color) 13%, white);
+  color: var(--route-color);
+  padding: 2px 7px;
+  font-size: .75rem;
+}
+
+.shop-section ul {
+  display: grid;
+  gap: 7px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.shop-item {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) minmax(150px, 210px);
+  align-items: center;
+  gap: 12px;
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--route-color);
+  border-radius: 8px;
+  background: white;
+  padding: 10px 12px;
+}
+
+.shop-item > div {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+.shop-item strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.shop-item > div span {
+  color: var(--muted);
+  font-size: .82rem;
+}
+
+.shop-check {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--route-color);
+  border-radius: 50%;
+  background: white;
+  color: transparent;
+  font-weight: 900;
+}
+
+.shop-check:hover {
+  background: var(--route-color);
+  color: white;
+}
+
+.route-select {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 7px;
+}
+
+.route-select span {
+  color: var(--muted);
+  font-size: .72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.route-select select {
+  padding: 8px 9px;
+}
+
 .panel-toolbar {
   justify-content: space-between;
   gap: 12px;
@@ -662,6 +801,19 @@ pre {
   .spelling-issue {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .shop-header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .shop-item {
+    grid-template-columns: 40px minmax(0, 1fr);
+  }
+
+  .route-select {
+    grid-column: 2;
   }
 
   .add-item {
