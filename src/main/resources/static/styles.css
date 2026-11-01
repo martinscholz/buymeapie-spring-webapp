@@ -276,6 +276,101 @@ select:focus {
   gap: 12px;
 }
 
+.admin-workspace {
+  display: grid;
+  gap: 16px;
+}
+
+.admin-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--line);
+}
+
+.admin-header h3 {
+  margin-bottom: 0;
+  font-size: 1.35rem;
+}
+
+.admin-copy {
+  margin-bottom: 0;
+  color: var(--muted);
+}
+
+.spelling-issues {
+  display: grid;
+  gap: 10px;
+}
+
+.spelling-issue {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--gold);
+  border-radius: 8px;
+  background: white;
+  padding: 15px 16px;
+}
+
+.issue-copy {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.issue-label {
+  color: var(--muted);
+  font-size: .75rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.issue-original {
+  color: #9f2332;
+  text-decoration: line-through;
+}
+
+.issue-suggestion {
+  color: var(--leaf);
+}
+
+.issue-arrow {
+  color: var(--muted);
+}
+
+.accept-correction {
+  flex: 0 0 auto;
+  background: #e8f4ef;
+  color: var(--leaf);
+}
+
+.admin-empty {
+  display: grid;
+  place-items: center;
+  min-height: 240px;
+  border: 1px dashed #bdcbd7;
+  border-radius: 8px;
+  color: var(--muted);
+  text-align: center;
+  padding: 30px;
+}
+
+.admin-empty h4 {
+  margin-bottom: 6px;
+  color: var(--ink);
+}
+
+.admin-empty p {
+  margin-bottom: 0;
+}
+
 .panel-toolbar {
   justify-content: space-between;
   gap: 12px;
@@ -561,6 +656,12 @@ pre {
 
   .assignment-panel {
     grid-template-columns: 1fr;
+  }
+
+  .admin-header,
+  .spelling-issue {
+    align-items: stretch;
+    flex-direction: column;
   }
 
   .add-item {

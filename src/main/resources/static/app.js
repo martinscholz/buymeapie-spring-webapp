@@ -8,12 +8,22 @@ const state = {
   groupFilter: "",
   assignMode: false,
   assignmentGroup: "",
+  workspace: "items",
   account: null,
   restrictions: null,
   cache: new Map()
 };
 
 const CACHE_TTL_MS = 45_000;
+const SPELLING_CORRECTIONS = new Map([
+  ["avacado", "avocado"], ["bananna", "banana"], ["bannana", "banana"],
+  ["brocolli", "broccoli"], ["choclate", "chocolate"], ["cucumer", "cucumber"],
+  ["mayo", "mayonnaise"], ["mayonaise", "mayonnaise"], ["mozarella", "mozzarella"],
+  ["mushrom", "mushroom"], ["mushrooms", "mushrooms"], ["onoin", "onion"],
+  ["pamesan", "parmesan"], ["potatos", "potatoes"], ["rasberry", "raspberry"],
+  ["strawbery", "strawberry"], ["strwaberry", "strawberry"], ["tomatos", "tomatoes"],
+  ["yoghourt", "yogurt"], ["youghurt", "yogurt"]
+]);
 const $ = (selector) => document.querySelector(selector);
 const listNav = $("#list-nav");
 const itemList = $("#item-list");
@@ -199,6 +209,86 @@ function renderCurrentList() {
   renderAssignmentGroups();
   renderAssignmentPanel();
   renderItems();
+  renderWorkspace();
+}
+
+function renderWorkspace() {
+  const admin = state.workspace === "admin";
+  $("#items-workspace").hidden = admin;
+  $("#admin-workspace").hidden = !admin;
+  $("#items-tab-button").classList.toggle("active", !admin);
+  $("#admin-tab-button").classList.toggle("active", admin);
+  if (admin) renderSpellingIssues();
+}
+
+function spellingIssues() {
+  return state.items.flatMap((item) => {
+    const original = itemTitle(item);
+    const suggested = suggestedSpelling(original);
+    return suggested && suggested !== original ? [{ item, original, suggested }] : [];
+  });
+}
+
+function suggestedSpelling(title) {
+  return title.replace(/\b[\p{L}']+\b/gu, (word) => {
+    const correction = SPELLING_CORRECTIONS.get(word.toLowerCase());
+    if (!correction) return word;
+    if (word === word.toUpperCase()) return correction.toUpperCase();
+    if (word[0] === word[0].toUpperCase()) return correction[0].toUpperCase() + correction.slice(1);
+    return correction;
+  });
+}
+
+function renderSpellingIssues() {
+  const target = $("#spelling-issues");
+  const issues = spellingIssues();
+  $("#apply-all-corrections").hidden = issues.length === 0;
+  if (!state.currentListId) {
+    target.innerHTML = `<div class="admin-empty"><h4>Select a list</h4><p>Choose a shopping list to review its item names.</p></div>`;
+    return;
+  }
+  if (!issues.length) {
+    target.innerHTML = `<div class="admin-empty"><h4>Nothing to correct</h4><p>No high-confidence spelling suggestions were found in this list.</p></div>`;
+    return;
+  }
+  target.innerHTML = "";
+  for (const issue of issues) {
+    const row = document.createElement("article");
+    row.className = "spelling-issue";
+    row.innerHTML = `<div class="issue-copy"><span class="issue-label">Detected</span><strong class="issue-original"></strong><span class="issue-arrow">to</span><span class="issue-label">Suggested</span><strong class="issue-suggestion"></strong></div><button class="small-button accept-correction" type="button">Accept</button>`;
+    row.querySelector(".issue-original").textContent = issue.original;
+    row.querySelector(".issue-suggestion").textContent = issue.suggested;
+    row.querySelector(".accept-correction").addEventListener("click", () => acceptCorrection(issue));
+    target.append(row);
+  }
+}
+
+async function acceptCorrection(issue) {
+  try {
+    await api(`/api/lists/${state.currentListId}/items/${itemId(issue.item)}`, {
+      method: "PATCH",
+      body: JSON.stringify({ title: issue.suggested })
+    });
+    await afterMutation();
+    showToast(`Corrected "${issue.original}"`);
+  } catch (error) {
+    showToast(error.message);
+  }
+}
+
+async function acceptAllCorrections() {
+  const issues = spellingIssues();
+  if (!issues.length) return;
+  try {
+    await Promise.all(issues.map((issue) => api(`/api/lists/${state.currentListId}/items/${itemId(issue.item)}`, {
+      method: "PATCH",
+      body: JSON.stringify({ title: issue.suggested })
+    })));
+    await afterMutation();
+    showToast(`Accepted ${issues.length} spelling correction${issues.length === 1 ? "" : "s"}`);
+  } catch (error) {
+    showToast(error.message);
+  }
 }
 
 function renderItems() {
@@ -524,6 +614,18 @@ $("#add-item-form").addEventListener("submit", async (event) => {
 });
 
 $("#refresh-button").addEventListener("click", refresh);
+
+$("#items-tab-button").addEventListener("click", () => {
+  state.workspace = "items";
+  renderWorkspace();
+});
+
+$("#admin-tab-button").addEventListener("click", () => {
+  state.workspace = "admin";
+  renderWorkspace();
+});
+
+$("#apply-all-corrections").addEventListener("click", acceptAllCorrections);
 
 $("#assign-mode-button").addEventListener("click", () => {
   state.assignMode = !state.assignMode;

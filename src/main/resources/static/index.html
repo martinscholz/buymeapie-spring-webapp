@@ -32,10 +32,13 @@
           <h2 id="current-list-title">Shopping lists</h2>
         </div>
         <div class="top-actions">
+          <button id="items-tab-button" class="ghost-button active" type="button">Items</button>
+          <button id="admin-tab-button" class="ghost-button" type="button">Admin</button>
           <button id="refresh-button" class="ghost-button" type="button">Refresh</button>
         </div>
       </header>
 
+      <section id="items-workspace">
       <section class="summary-strip" aria-label="List summary">
         <article>
           <span id="summary-open">0</span>
@@ -94,6 +97,19 @@
           <button id="clear-filters" class="ghost-button" type="button">Clear</button>
         </div>
         <ul id="item-list" class="item-list"></ul>
+      </section>
+      </section>
+
+      <section id="admin-workspace" class="admin-workspace" hidden>
+        <header class="admin-header">
+          <div>
+            <p class="eyebrow">List maintenance</p>
+            <h3>Spelling review</h3>
+          </div>
+          <button id="apply-all-corrections" class="ghost-button" type="button">Accept all</button>
+        </header>
+        <p class="admin-copy">Review high-confidence corrections detected in the current list. Accepting a suggestion only changes that item name.</p>
+        <div id="spelling-issues" class="spelling-issues"></div>
       </section>
     </section>
 
