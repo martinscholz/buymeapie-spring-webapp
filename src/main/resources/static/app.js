@@ -207,12 +207,21 @@ function renderCurrentList() {
   $("#add-item-form").querySelectorAll("input,button").forEach((element) => element.disabled = !hasList);
   $("#current-list-title").textContent = state.currentList ? listName(state.currentList) : "Shopping lists";
   renderSummary();
+  renderListItemSuggestions();
   renderGroupSuggestions();
   renderFilterGroups();
   renderAssignmentGroups();
   renderAssignmentPanel();
   renderItems();
   renderWorkspace();
+}
+
+function renderListItemSuggestions() {
+  const suggestions = [...new Set(state.items.map(itemTitle).filter(Boolean))]
+    .sort((left, right) => left.localeCompare(right));
+  $("#list-item-suggestions").innerHTML = suggestions
+    .map((title) => `<option value="${escapeHtml(title)}"></option>`)
+    .join("");
 }
 
 function renderWorkspace() {
@@ -522,10 +531,60 @@ async function loadAccount(force = false) {
 async function loadUniqueItems(force = false) {
   const data = await api("/api/unique-items", { force }).catch(() => []);
   const values = [...extractStrings(data)].sort((a, b) => a.localeCompare(b));
-  $("#unique-items").innerHTML = values
-    .slice(0, 500)
-    .map((value) => `<option value="${escapeHtml(value)}"></option>`)
-    .join("");
+  return values;
+}
+
+function printRouteEntries() {
+  const openItems = state.items.filter((item) => !itemPurchased(item));
+  const sections = new Map(state.shoppingCategories.map((category) => [category.code, []]));
+  const unassigned = [];
+  for (const item of openItems) {
+    const route = routeForItem(item);
+    if (route.category && sections.has(route.category)) sections.get(route.category).push(item);
+    else unassigned.push(item);
+  }
+  const entries = state.shoppingCategories
+    .map((category) => ({ name: category.name, items: sections.get(category.code) }))
+    .filter((section) => section.items.length);
+  if (unassigned.length) entries.push({ name: "Unassigned", items: unassigned });
+  return entries;
+}
+
+function renderPrintSheet() {
+  const title = state.currentList ? listName(state.currentList) : "Shopping list";
+  $("#print-list-title").textContent = title;
+  $("#print-date").textContent = new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(new Date());
+  const target = $("#print-items");
+  const entries = printRouteEntries();
+  target.innerHTML = "";
+  if (!entries.length) {
+    target.innerHTML = `<p class="print-empty">No open items.</p>`;
+    return;
+  }
+  for (const section of entries) {
+    const block = document.createElement("section");
+    block.innerHTML = `<h2></h2><ul></ul>`;
+    block.querySelector("h2").textContent = section.name;
+    const list = block.querySelector("ul");
+    for (const item of section.items) {
+      const row = document.createElement("li");
+      row.innerHTML = `<span class="print-checkbox"></span><span class="print-title"></span><span class="print-amount"></span>`;
+      row.querySelector(".print-title").textContent = itemTitle(item);
+      row.querySelector(".print-amount").textContent = itemAmount(item);
+      row.querySelector(".print-amount").hidden = !itemAmount(item);
+      list.append(row);
+    }
+    target.append(block);
+  }
+}
+
+function printList() {
+  if (!state.currentListId) {
+    showToast("Select a list before printing");
+    return;
+  }
+  renderPrintSheet();
+  window.print();
 }
 
 async function loadShoppingCategories(force = false) {
@@ -714,6 +773,8 @@ $("#add-item-form").addEventListener("submit", async (event) => {
 });
 
 $("#refresh-button").addEventListener("click", refresh);
+
+$("#print-button").addEventListener("click", printList);
 
 $("#items-tab-button").addEventListener("click", () => {
   state.workspace = "items";

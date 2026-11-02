@@ -35,6 +35,7 @@
           <button id="items-tab-button" class="ghost-button active" type="button">Items</button>
           <button id="shop-tab-button" class="ghost-button" type="button">Shop mode</button>
           <button id="admin-tab-button" class="ghost-button" type="button">Admin</button>
+          <button id="print-button" class="ghost-button" type="button">Print list</button>
           <button id="refresh-button" class="ghost-button" type="button">Refresh</button>
         </div>
       </header>
@@ -57,12 +58,12 @@
 
       <section class="tool-row">
         <form id="add-item-form" class="add-item">
-          <input id="item-title" list="unique-items" type="text" autocomplete="off" placeholder="Add milk, tomatoes, pasta..." required>
+          <input id="item-title" list="list-item-suggestions" type="text" autocomplete="off" placeholder="Add milk, tomatoes, pasta..." required>
           <input id="item-amount" type="text" autocomplete="off" placeholder="Amount">
           <input id="item-group" list="group-suggestions" type="text" autocomplete="off" placeholder="Group">
           <button type="submit">Add</button>
         </form>
-        <datalist id="unique-items"></datalist>
+        <datalist id="list-item-suggestions"></datalist>
         <datalist id="group-suggestions"></datalist>
       </section>
 
@@ -127,6 +128,15 @@
     </section>
 
   </main>
+
+  <section id="print-sheet" class="print-sheet" aria-hidden="true">
+    <header>
+      <p>Shopping list</p>
+      <h1 id="print-list-title"></h1>
+      <span id="print-date"></span>
+    </header>
+    <div id="print-items" class="print-items"></div>
+  </section>
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
   <script src="/app.js" defer></script>
