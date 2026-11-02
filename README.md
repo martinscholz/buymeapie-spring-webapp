@@ -10,7 +10,7 @@ A modern Spring Boot 3 web application for Buy Me a Pie shopping lists. It turns
 - List, add, edit, purchase/unpurchase, and delete shopping items.
 - Group items in the UI and inspect every raw attribute returned for a selected item.
 - Load the autocomplete item dictionary for faster entry.
-- Cache read-heavy API calls on the server and in the browser, with automatic invalidation after writes.
+- Cache read-heavy API calls briefly on the server and in the browser, with automatic invalidation after writes and a 30-second live sync while the page is visible.
 - Provide a persistent, app-owned shopping route that learns item placements without changing Buy Me a Pie groups.
 - Provide a responsive single-page interface backed by Spring Boot REST APIs.
 - Run as a Docker container with health checks.
@@ -69,6 +69,7 @@ The frontend uses these server-side routes:
 - `PUT /api/lists/{listId}/items/{itemId}/purchased`
 - `DELETE /api/lists/{listId}/items/{itemId}`
 - `GET /api/unique-items`
+- `POST /api/refresh`
 - `GET /api/shopping-route/categories`
 - `POST /api/shopping-route/resolve`
 - `PUT /api/shopping-route/assignments`

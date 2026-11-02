@@ -10,8 +10,10 @@ spring:
       ddl-auto: update
     open-in-view: false
   cache:
-    type: simple
+    type: caffeine
     cache-names: account,restrictions,lists,listDetails,listItems,uniqueItems
+    caffeine:
+      spec: maximumSize=500,expireAfterWrite=30s
 
 buymeapie:
   base-url: ${BUYMEAPIE_BASE_URL:https://api.buymeapie.com}

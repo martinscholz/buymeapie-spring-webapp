@@ -79,6 +79,18 @@ public class BuyMeAPieClient {
     }
 
     @Caching(evict = {
+            @CacheEvict(cacheNames = "account", allEntries = true),
+            @CacheEvict(cacheNames = "restrictions", allEntries = true),
+            @CacheEvict(cacheNames = "lists", allEntries = true),
+            @CacheEvict(cacheNames = "listDetails", allEntries = true),
+            @CacheEvict(cacheNames = "listItems", allEntries = true),
+            @CacheEvict(cacheNames = "uniqueItems", allEntries = true)
+    })
+    public void clearReadCaches() {
+        // The native Buy Me a Pie apps can change data outside this web application.
+    }
+
+    @Caching(evict = {
             @CacheEvict(cacheNames = "lists", allEntries = true),
             @CacheEvict(cacheNames = "listDetails", allEntries = true),
             @CacheEvict(cacheNames = "listItems", allEntries = true)

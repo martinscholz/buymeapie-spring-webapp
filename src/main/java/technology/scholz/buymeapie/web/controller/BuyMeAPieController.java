@@ -97,6 +97,12 @@ public class BuyMeAPieController {
         return client.uniqueItems();
     }
 
+    @PostMapping("/refresh")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    void refreshRemoteData() {
+        client.clearReadCaches();
+    }
+
     @GetMapping("/shopping-route/categories")
     Object shoppingRouteCategories() {
         return shoppingRouteService.categories();

@@ -524,6 +524,7 @@ async function selectList(listId, force = false) {
 async function refresh() {
   try {
     state.cache.clear();
+    await api("/api/refresh", { method: "POST", cacheInvalidate: false });
     await Promise.all([loadLists(true, true), loadAccount(true), loadUniqueItems(true), loadShoppingCategories(true)]);
     if (state.currentListId) {
       await selectList(state.currentListId, true);
@@ -843,5 +844,9 @@ $("#clear-filters").addEventListener("click", () => {
   $("#filter-group").value = "";
   renderItems();
 });
+
+setInterval(() => {
+  if (document.visibilityState === "visible") refresh();
+}, 30_000);
 
 refresh();
