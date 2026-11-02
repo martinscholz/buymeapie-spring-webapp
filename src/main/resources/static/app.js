@@ -68,6 +68,10 @@ function itemPurchased(item) {
   return Boolean(item.is_purchased ?? item.purchased);
 }
 
+function itemDeleted(item) {
+  return Boolean(item.deleted ?? item.is_deleted);
+}
+
 function itemTitle(item) {
   return item.title || item.name || item.text || "Untitled item";
 }
@@ -162,8 +166,19 @@ function addGroupDefinition(value, definitions) {
   }
 }
 
+function itemIdentifier(item) {
+  const identifier = item.id ?? item.uuid ?? item.item_id;
+  return identifier === null || identifier === undefined || identifier === "" ? null : String(identifier);
+}
+
 function itemId(item) {
-  return item.id || item.uuid || item.item_id || itemTitle(item);
+  return itemIdentifier(item) || itemTitle(item);
+}
+
+function itemEndpoint(item) {
+  const identifier = itemIdentifier(item);
+  if (!identifier) throw new Error("This item no longer has a valid source identifier. Refresh the list and try again.");
+  return `/api/lists/${encodeURIComponent(state.currentListId)}/items/${encodeURIComponent(identifier)}`;
 }
 
 function listName(list) {
@@ -193,11 +208,12 @@ function renderLists() {
 }
 
 function renderSummary() {
-  const open = state.items.filter((item) => !itemPurchased(item)).length;
-  const done = state.items.length - open;
+  const activeItems = state.items.filter((item) => !itemDeleted(item));
+  const open = activeItems.filter((item) => !itemPurchased(item)).length;
+  const done = activeItems.length - open;
   $("#summary-open").textContent = open;
   $("#summary-done").textContent = done;
-  $("#summary-total").textContent = state.items.length;
+  $("#summary-total").textContent = activeItems.length;
 }
 
 function renderCurrentList() {
@@ -217,7 +233,7 @@ function renderCurrentList() {
 }
 
 function renderListItemSuggestions() {
-  const suggestions = [...new Set(state.items.map(itemTitle).filter(Boolean))]
+  const suggestions = [...new Set(state.items.filter((item) => !itemDeleted(item)).map(itemTitle).filter(Boolean))]
     .sort((left, right) => left.localeCompare(right));
   $("#list-item-suggestions").innerHTML = suggestions
     .map((title) => `<option value="${escapeHtml(title)}"></option>`)
@@ -261,7 +277,7 @@ function routeForItem(item) {
 
 function renderShopMode() {
   const target = $("#shop-route");
-  const openItems = state.items.filter((item) => !itemPurchased(item));
+  const openItems = state.items.filter((item) => !itemDeleted(item) && !itemPurchased(item));
   $("#shop-progress").textContent = `${openItems.length} open`;
   if (!state.currentListId) {
     target.innerHTML = `<div class="admin-empty"><h4>Select a list</h4><p>Choose Groceries to build a route through the store.</p></div>`;
@@ -326,7 +342,7 @@ async function saveRouteAssignment(item, category) {
 }
 
 function spellingIssues() {
-  return state.items.flatMap((item) => {
+  return state.items.filter((item) => !itemDeleted(item) && itemIdentifier(item)).flatMap((item) => {
     const original = itemTitle(item);
     const suggested = suggestedSpelling(original);
     return suggested && suggested !== original ? [{ item, original, suggested }] : [];
@@ -369,7 +385,7 @@ function renderSpellingIssues() {
 
 async function acceptCorrection(issue) {
   try {
-    await api(`/api/lists/${state.currentListId}/items/${itemId(issue.item)}`, {
+    await api(itemEndpoint(issue.item), {
       method: "PATCH",
       body: JSON.stringify({ title: issue.suggested })
     });
@@ -384,7 +400,7 @@ async function acceptAllCorrections() {
   const issues = spellingIssues();
   if (!issues.length) return;
   try {
-    await Promise.all(issues.map((issue) => api(`/api/lists/${state.currentListId}/items/${itemId(issue.item)}`, {
+    await Promise.all(issues.map((issue) => api(itemEndpoint(issue.item), {
       method: "PATCH",
       body: JSON.stringify({ title: issue.suggested })
     })));
@@ -399,6 +415,7 @@ function renderItems() {
   itemList.innerHTML = "";
   const normalizedQuery = state.query.trim().toLowerCase();
   const filtered = state.items.filter((item) => {
+    if (itemDeleted(item)) return false;
     const purchased = itemPurchased(item);
     const haystack = `${itemTitle(item)} ${itemAmount(item)} ${itemGroup(item)} ${JSON.stringify(item)}`.toLowerCase();
     const matchesFilter = state.filter === "all" || (state.filter === "open" && !purchased) || (state.filter === "purchased" && purchased);
@@ -535,7 +552,7 @@ async function loadUniqueItems(force = false) {
 }
 
 function printRouteEntries() {
-  const openItems = state.items.filter((item) => !itemPurchased(item));
+  const openItems = state.items.filter((item) => !itemDeleted(item) && !itemPurchased(item));
   const sections = new Map(state.shoppingCategories.map((category) => [category.code, []]));
   const unassigned = [];
   for (const item of openItems) {
@@ -657,7 +674,7 @@ async function assignItemGroup(item) {
   const targetGroup = state.assignmentGroup || "Ungrouped";
   if (itemGroup(item) === targetGroup) return;
   try {
-    await api(`/api/lists/${state.currentListId}/items/${itemId(item)}`, {
+    await api(itemEndpoint(item), {
       method: "PATCH",
       body: JSON.stringify(groupInputPayload(targetGroup))
     });
@@ -695,7 +712,7 @@ function escapeHtml(value) {
 
 async function setPurchased(item, purchased) {
   try {
-    await api(`/api/lists/${state.currentListId}/items/${itemId(item)}/purchased`, {
+    await api(`${itemEndpoint(item)}/purchased`, {
       method: "PUT",
       body: JSON.stringify({ purchased })
     });
@@ -713,7 +730,7 @@ async function editItem(item) {
   const group = prompt("Group", itemGroup(item) === "Ungrouped" ? "" : itemGroup(item));
   if (group === null) return;
   try {
-    await api(`/api/lists/${state.currentListId}/items/${itemId(item)}`, {
+    await api(itemEndpoint(item), {
       method: "PATCH",
       body: JSON.stringify({ title: title.trim(), amount, ...groupInputPayload(group) })
     });
@@ -726,7 +743,7 @@ async function editItem(item) {
 async function deleteItem(item) {
   if (!confirm(`Delete "${itemTitle(item)}"?`)) return;
   try {
-    await api(`/api/lists/${state.currentListId}/items/${itemId(item)}`, { method: "DELETE" });
+    await api(itemEndpoint(item), { method: "DELETE" });
     await afterMutation();
   } catch (error) {
     showToast(error.message);
