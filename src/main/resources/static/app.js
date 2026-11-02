@@ -11,6 +11,7 @@ const state = {
   workspace: "items",
   shoppingCategories: [],
   shoppingRoutes: new Map(),
+  lastSyncedAt: null,
   account: null,
   restrictions: null,
   cache: new Map()
@@ -62,6 +63,30 @@ function showToast(message) {
   toast.classList.add("show");
   clearTimeout(showToast.timer);
   showToast.timer = setTimeout(() => toast.classList.remove("show"), 3200);
+}
+
+function markSynced() {
+  state.lastSyncedAt = new Date();
+  renderSyncStatus();
+}
+
+function renderSyncStatus() {
+  const status = $("#sync-status");
+  if (!state.lastSyncedAt) {
+    status.textContent = "Syncing…";
+    status.removeAttribute("title");
+    return;
+  }
+  const elapsedSeconds = Math.max(0, Math.floor((Date.now() - state.lastSyncedAt.getTime()) / 1000));
+  let label;
+  if (elapsedSeconds < 5) label = "Synced just now";
+  else if (elapsedSeconds < 60) label = `Synced ${elapsedSeconds}s ago`;
+  else {
+    const minutes = Math.floor(elapsedSeconds / 60);
+    label = `Synced ${minutes}m ago`;
+  }
+  status.textContent = label;
+  status.title = `Last synced ${new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "medium" }).format(state.lastSyncedAt)}`;
 }
 
 function itemPurchased(item) {
@@ -531,6 +556,7 @@ async function refresh() {
     } else {
       renderCurrentList();
     }
+    markSynced();
   } catch (error) {
     showToast(error.message);
   }
@@ -755,6 +781,7 @@ async function afterMutation() {
   state.cache.clear();
   await loadLists(false, true);
   await selectList(state.currentListId, true);
+  markSynced();
 }
 
 $("#create-list-form").addEventListener("submit", async (event) => {
@@ -848,5 +875,7 @@ $("#clear-filters").addEventListener("click", () => {
 setInterval(() => {
   if (document.visibilityState === "visible") refresh();
 }, 30_000);
+
+setInterval(renderSyncStatus, 5_000);
 
 refresh();

@@ -209,6 +209,20 @@ select:focus {
   flex-wrap: wrap;
 }
 
+.sync-status {
+  display: inline-flex;
+  align-items: center;
+  min-height: 38px;
+  border: 1px solid #b9d9ca;
+  border-radius: 999px;
+  background: #eef8f2;
+  color: var(--leaf);
+  padding: 7px 10px;
+  font-size: .8rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
 .print-sheet {
   display: none;
 }
